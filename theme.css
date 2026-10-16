@@ -413,3 +413,55 @@ body.qs-open{overflow:hidden}
 .f-art{position:absolute;inset:0;overflow:hidden;border-radius:16px;z-index:-1;pointer-events:none}
 .feature details.pop[open]>summary{background:var(--mint);color:var(--ink)}
 .feature .pop-menu{z-index:40}
+
+/* ---------- Revisions: compact subscribe, centred banner buttons, themed nights, replays ---------- */
+/* Subscribe: small text control beside "Official schedule" */
+.sched-actions{justify-content:flex-start;gap:18px;margin-top:10px}
+.sched-actions details.subscribe>summary{min-height:32px;padding:0;border:0;background:none;color:var(--green);font:600 13px var(--body)}
+.sched-actions details.subscribe[open]>summary{background:none;color:var(--ink)}
+.sched-actions .seg-link{margin-left:0}
+
+/* Banner: calendar + directions are equal, centred buttons */
+.f-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-left:auto;width:auto;min-width:300px}
+.f-actions details.pop{display:block;width:100%}
+.f-actions details.pop>summary,.f-actions .f-dir{width:100%;min-height:42px;justify-content:center;text-align:center;box-sizing:border-box;padding:0 14px;border-radius:999px;font:700 13px var(--body);line-height:1}
+.f-actions .f-dir{display:inline-flex;align-items:center;margin:0;background:#fff;color:var(--ink);text-decoration:none}
+.feature details.pop .pop-menu{left:0;right:auto}
+@media(max-width:760px){.f-actions{width:100%;min-width:0;margin-left:0}}
+
+/* Theme nights: each tag dressed like its theme */
+.theme-pill{position:relative;overflow:hidden;border:0;text-shadow:none}
+.theme-pill:before{display:none}
+.theme-pill i{font-style:normal;margin-right:2px}
+.theme-camo{color:#fff;text-shadow:0 1px 1px #0008;background:#4b5320;background-image:radial-gradient(ellipse 9px 6px at 18% 30%,#2f3a1a 60%,transparent 62%),radial-gradient(ellipse 11px 7px at 55% 70%,#7a6a3a 60%,transparent 62%),radial-gradient(ellipse 8px 6px at 82% 25%,#1f2612 60%,transparent 62%),radial-gradient(ellipse 10px 6px at 38% 85%,#6b7a3a 60%,transparent 62%),radial-gradient(ellipse 7px 5px at 70% 40%,#3d4a22 60%,transparent 62%)}
+.theme-hawaiian{color:#fff;text-shadow:0 1px 1px #0006;background:linear-gradient(100deg,#ff5f6d 0%,#ffb347 45%,#22c1c3 100%)}
+.theme-orange{color:#fff;background:#ff7a00}
+.theme-blackout{color:#fff;background:#000;box-shadow:inset 0 0 0 1px #ffffff40}
+.theme-jersey{color:#fff;background:linear-gradient(90deg,#fff 0 3px,#0f6b3a 3px 6px,#fff 6px 9px,#0f6b3a 9px calc(100% - 9px),#fff calc(100% - 9px) calc(100% - 6px),#0f6b3a calc(100% - 6px) calc(100% - 3px),#fff calc(100% - 3px));padding-left:15px!important;padding-right:15px!important}
+.theme-country-club{color:#1d2a4d;background-color:#e8f2fb;background-image:linear-gradient(45deg,#f7c6d9 25%,transparent 25%,transparent 75%,#f7c6d9 75%),linear-gradient(45deg,#f7c6d9 25%,transparent 25%,transparent 75%,#f7c6d9 75%);background-size:12px 12px;background-position:0 0,6px 6px}
+.theme-country-club{text-shadow:0 0 3px #fff,0 0 2px #fff}
+.theme-green-out{color:#062b14;background:#3ee06d}
+.theme-dig-pink{color:#fff;background:#ff2d87}
+.theme-usa{color:#fff;background:linear-gradient(90deg,#1f3a93 0 26px,transparent 26px),repeating-linear-gradient(180deg,#c8102e 0 4px,#fff 4px 8px);text-shadow:0 1px 2px #000c}
+.theme-usa i{color:#fff}
+.theme-neon{color:#39ff14;background:#0b0b10;box-shadow:inset 0 0 0 1px #ff2fd1,0 0 8px #ff2fd166;text-shadow:0 0 6px #39ff14aa}
+/* Larger tags on the banner and home strip keep the same treatments */
+.feature .theme-pill,.n-tags .theme-pill{min-height:30px;border-radius:999px;padding:0 12px;font-size:11px}
+.feature .theme-pill:not([class*="theme-"]){background:#ffffff26}
+
+/* Past games: replay link */
+.replay-link{display:inline-flex;align-items:center;gap:4px;font:600 12px var(--body);color:#b3261e;text-decoration:none;padding:2px 0}
+.sched-actions{align-items:center}
+.sched-actions details.subscribe{display:inline-flex}
+.sched-actions details.subscribe>summary,.sched-actions .seg-link{display:inline-flex;align-items:center;min-height:32px;line-height:1}
+/* The banner's action row is a plain container, not a tag */
+.f-meta .f-actions{background:none;padding:0;min-height:0;border-radius:0;align-items:stretch}
+.f-actions details.pop>summary{display:flex;align-items:center;margin:0}
+/* The old stylesheet gives every <details> a top margin; menus sit inline */
+body details.pop{margin:0}
+.feature .f-meta .f-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.feature .f-actions>*{width:100%;min-width:0;flex:none}
+/* USA: text on the blue field, stripes as an accent on the right edge */
+.theme-usa{background:linear-gradient(90deg,#1f3a93 0 calc(100% - 20px),transparent calc(100% - 20px)),repeating-linear-gradient(180deg,#c8102e 0 4px,#fff 4px 8px);padding-right:28px!important;text-shadow:none}
+body .game .res a.replay-link{color:#b3261e}
+.theme-camo{background-color:#5b6b33;background-image:radial-gradient(ellipse 10px 7px at 20% 35%,#26301a 70%,transparent 72%),radial-gradient(ellipse 12px 8px at 70% 70%,#a08e5a 70%,transparent 72%),radial-gradient(ellipse 9px 7px at 85% 20%,#171d0e 70%,transparent 72%),radial-gradient(ellipse 11px 6px at 45% 90%,#7d8b45 70%,transparent 72%),radial-gradient(ellipse 8px 6px at 5% 85%,#a08e5a 70%,transparent 72%);background-size:44px 26px;text-shadow:0 1px 2px #000,0 0 4px #000}

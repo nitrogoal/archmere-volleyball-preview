@@ -9,7 +9,10 @@ fetch('themes.json').then(r => r.ok ? r.json() : []).then(list => {
   THEMES = Object.fromEntries(list.map(t => [`${t.date}|${t.opponent}`, t.theme]));
   if (D) render(false);
 }).catch(() => {});
-const themePill = s => themeFor(s) ? `<span class="theme-pill">${esc(themeFor(s))} night</span>` : '';
+// Each theme night gets its own look (see theme.css .theme-*)
+const themeClass = t => 'theme-' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const themeTag = (t, extra = '') => t ? `<span class="theme-pill ${themeClass(t)} ${extra}">${t === 'USA' ? '<i aria-hidden="true">★</i>' : ''}${esc(t)} night</span>` : '';
+const themePill = s => themeTag(themeFor(s));
 
 /* ---------- Calendar ---------- */
 const calSlug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -31,7 +34,7 @@ function googleCalUrl(s) {
 const calMenu = s => `<details class="pop"><summary>Add to calendar</summary><div class="pop-menu"><a href="cal/${calKey(s)}.ics" download>Apple / Outlook</a><a href="${googleCalUrl(s)}" target="_blank" rel="noopener noreferrer">Google Calendar ↗</a></div></details>`;
 function subscribeMenu() {
   const feed = `${location.host}${location.pathname.replace(/[^/]*$/, '')}schedule.ics`;
-  return `<details class="pop subscribe"><summary>Subscribe to the season</summary><div class="pop-menu"><p>Games, times and final scores update in your calendar automatically.</p><a href="webcal://${feed}">Apple / Outlook</a><a href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent('webcal://' + feed)}" target="_blank" rel="noopener noreferrer">Google Calendar ↗</a><button type="button" data-copy="https://${feed}">Copy calendar link</button></div></details>`;
+  return `<details class="pop subscribe"><summary>Subscribe</summary><div class="pop-menu"><p>Games, times and final scores update in your calendar automatically.</p><a href="webcal://${feed}">Apple / Outlook</a><a href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent('webcal://' + feed)}" target="_blank" rel="noopener noreferrer">Google Calendar ↗</a><button type="button" data-copy="https://${feed}">Copy calendar link</button></div></details>`;
 }
 document.addEventListener('click', e => {
   // One menu open at a time; tapping outside closes it
@@ -41,10 +44,11 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- Live stream ---------- */
+const replayLink = s => s.streamUrl ? `<a class="replay-link" href="${esc(s.streamUrl)}" target="_blank" rel="noopener noreferrer">▶ Watch replay ↗</a>` : '';
 const liveLink = s => s.streamUrl ? `<a class="live-link" href="${esc(s.streamUrl)}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">●</span> Watch live ↗</a>` : '';
 
 /* ---------- Milestones ---------- */
-const STEPS = [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 750, 800, 900, 1000, 1250, 1500, 1750, 2000, 2500];
+const STEPS = [250, 500, 750, 1000];
 function careerRank(name, i) {
   const list = D.players.filter(p => p.values[i] != null).sort((a, b) => b.values[i] - a.values[i]);
   const v = pByName(name).values[i];
