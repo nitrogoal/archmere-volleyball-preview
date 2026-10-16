@@ -465,3 +465,18 @@ body details.pop{margin:0}
 .theme-usa{background:linear-gradient(90deg,#1f3a93 0 calc(100% - 20px),transparent calc(100% - 20px)),repeating-linear-gradient(180deg,#c8102e 0 4px,#fff 4px 8px);padding-right:28px!important;text-shadow:none}
 body .game .res a.replay-link{color:#b3261e}
 .theme-camo{background-color:#5b6b33;background-image:radial-gradient(ellipse 10px 7px at 20% 35%,#26301a 70%,transparent 72%),radial-gradient(ellipse 12px 8px at 70% 70%,#a08e5a 70%,transparent 72%),radial-gradient(ellipse 9px 7px at 85% 20%,#171d0e 70%,transparent 72%),radial-gradient(ellipse 11px 6px at 45% 90%,#7d8b45 70%,transparent 72%),radial-gradient(ellipse 8px 6px at 5% 85%,#a08e5a 70%,transparent 72%);background-size:44px 26px;text-shadow:0 1px 2px #000,0 0 4px #000}
+/* Home next-game strip: a panel with two actions (calendar + schedule); background art in a clipped layer */
+.next{overflow:visible}
+.n-art{position:absolute;inset:0;overflow:hidden;z-index:-1;pointer-events:none}
+.n-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.n-actions details.pop>summary,.n-actions .n-btn{min-height:40px;padding:0 16px;border:0;border-radius:999px;background:#fff;color:var(--ink);font:700 13px var(--body);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box}
+.n-actions details.pop[open]>summary{background:var(--mint)}
+.n-actions .n-btn:hover{background:var(--mint)}
+.n-actions .pop-menu{z-index:40}
+.next:hover .n-btn{background:#fff}
+@media(max-width:760px){
+  .n-actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:4px}
+  .n-actions>*{width:100%;min-width:0}
+  .n-actions details.pop>summary,.n-actions .n-btn{width:100%;margin:0}
+  .n-actions .pop-menu{left:0;right:auto}
+}
