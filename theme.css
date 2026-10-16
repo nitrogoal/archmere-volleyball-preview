@@ -480,3 +480,28 @@ body .game .res a.replay-link{color:#b3261e}
   .n-actions details.pop>summary,.n-actions .n-btn{width:100%;margin:0}
   .n-actions .pop-menu{left:0;right:auto}
 }
+/* Schedule toolbar: filters and links share one row; fine print lives at the bottom */
+.sched-bar{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;padding:14px 0 0}
+.sched-bar .seg{padding:0;flex:0 1 auto;min-width:0}
+.sched-bar .sched-actions{margin:0;gap:16px;flex-shrink:0}
+.sched-bar+.month,.sched-bar+h2.month{margin-top:20px}
+.count-line{margin:24px 0 0}
+@media(max-width:760px){
+  .sched-bar{gap:4px 16px;padding-top:12px}
+  .sched-bar .seg{width:100%}
+  .sched-bar .sched-actions{width:100%;justify-content:flex-start}
+  .sched-bar+.month,.sched-bar+h2.month{margin-top:14px}
+}
+/* Very small phones: filters and header icons fit without clipping */
+@media(max-width:360px){
+  .seg{gap:4px}
+  .seg a{padding:0 11px;font-size:12px;min-height:36px}
+  body header.site-top{gap:8px;padding:0 4px 0 12px}
+  .site-brand{gap:8px}
+  .site-brand img{height:34px}
+  .site-brand b{font-size:18px}
+  .top-actions{gap:0}
+  .icon-btn{width:38px;height:44px}
+  .icon-btn svg{width:20px;height:20px}
+}
+@media(max-width:360px){.seg{gap:3px}.seg a{padding:0 9px}}
