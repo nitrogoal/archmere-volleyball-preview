@@ -505,3 +505,8 @@ body .game .res a.replay-link{color:#b3261e}
   .icon-btn svg{width:20px;height:20px}
 }
 @media(max-width:360px){.seg{gap:3px}.seg a{padding:0 9px}}
+/* Roster page: season links as a tidy row of text links */
+body .chips.section{display:flex;flex-wrap:wrap;gap:4px 22px;margin:14px 0 0;padding:0}
+body .chips.section .chip{min-height:40px;padding:0;margin:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--green);font:600 14px var(--body);display:inline-flex;align-items:center}
+body .chips.section .chip:hover{text-decoration:underline;text-underline-offset:3px;background:none}
+body .chips.section+.player-grid{margin-top:8px}
