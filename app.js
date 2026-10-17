@@ -53,14 +53,21 @@ function boxRows(rows,selected=-1){
 }
 // Box score table: one row per player, tap a column header to sort; the match leader in each stat is highlighted.
 const BOX_SHORT=["K","Ace","Blk","Dig","Ast"];
+function boxLeaders(rows){
+ const shortName=n=>{const p=n.replace(/\s*\(.*?\)/,'').trim().split(/\s+/);return p.length>1?p[0][0]+'. '+p.slice(1).join(' '):n};
+ const picks=[0,3,4,2,1].map(i=>{const v=rows.map(r=>r.values[i]).filter(v=>v!=null),max=Math.max(0,...v);return max>0?{i,max,names:rows.filter(r=>r.values[i]===max).map(r=>r.name)}:null}).filter(Boolean).slice(0,3);
+ if(!picks.length)return '';
+ return `<div class="box-leaders" aria-label="Match leaders">${picks.map(p=>`<a class="box-leader" href="${p.names.length===1?pLink(p.names[0]):'#'}" data-box-lead="${p.i}"><span class="bl-cat">${cats[p.i]}</span><strong>${p.max}</strong><b>${p.names.length>2?p.names.length+' tied':p.names.length>1?p.names.map(n=>esc(shortName(n).split(' ').pop())).join(' & '):esc(shortName(p.names[0]))}</b></a>`).join('')}</div>`;
+}
 function boxTable(rows,selected=-1){
  const sorted=[...rows].sort((a,b)=>selected<0?a.name.localeCompare(b.name):(b.values[selected]??-1)-(a.values[selected]??-1)||a.name.localeCompare(b.name));
  const lead=cats.map((c,i)=>{const v=rows.map(r=>r.values[i]).filter(v=>v!=null);const m=Math.max(0,...v);return m>0?m:null});
  const totals=cats.map((c,i)=>{const v=rows.map(r=>r.values[i]).filter(v=>v!=null);return v.length?v.reduce((a,b)=>a+b,0):null});
- const cell=(v,i,total=false)=>`<td class="${selected===i?'is-sorted':''}${!total&&v!=null&&v===lead[i]?' is-lead':''}">${fmt(v)}</td>`;
+ const cell=(v,i,total=false)=>`<td class="${selected===i?'is-sorted':''}${!total&&v!=null&&v===lead[i]?' is-lead':''}"${selected===i&&!total&&lead[i]?` style="--share:${Math.round((v||0)/lead[i]*100)}%"`:''}><span>${fmt(v)}</span></td>`;
  return `<table class="box-table"><thead><tr><th scope="col" class="bt-player">Player</th>${cats.map((c,i)=>`<th scope="col" class="${selected===i?'is-sorted':''}"><button type="button" data-box-stat="${i}" aria-pressed="${selected===i}" aria-label="Sort by ${c.toLowerCase()}"><span class="bt-long">${c}</span><span class="bt-short" aria-hidden="true">${BOX_SHORT[i]}</span></button></th>`).join('')}</tr></thead><tbody>${sorted.map(r=>{const j=currentJersey(r.name);return `<tr><th scope="row" class="bt-player"><a href="${pLink(r.name)}">${esc(r.name)}</a>${j?`<small>#${esc(j)}</small>`:''}</th>${r.values.map((v,i)=>cell(v,i)).join('')}</tr>`}).join('')}</tbody><tfoot><tr><th scope="row" class="bt-player">Team</th>${totals.map((v,i)=>cell(v,i,true)).join('')}</tr></tfoot></table>`;
 }
 document.addEventListener('click',e=>{
+ const tie=e.target.closest('.box-leader[href="#"]');if(tie){e.preventDefault();const b=tie.closest('.box-explorer').querySelector(`.box-table [data-box-stat="${tie.dataset.boxLead}"]`);if(b&&b.getAttribute('aria-pressed')!=='true')b.click();return}
  const button=e.target.closest('.box-explorer [data-box-stat]');if(!button)return;
  const panel=button.closest('.box-explorer'),i=Number(button.dataset.boxStat),selected=button.getAttribute('aria-pressed')==='true'?-1:i;
  panel.querySelector('.box-table-wrap').innerHTML=boxTable(D.stats.filter(s=>s.id===panel.dataset.game),selected);
@@ -86,7 +93,7 @@ function game(q){
  <div class="scorecard-foot"><span>${sets.length?sets.length+' sets played':'Varsity volleyball'}</span>${source(g.url,'Official results')}</div></section>
  <section class="report-sets"><div class="report-section-title"><span>01</span><h2>Set by set</h2></div>${sets.length?`<div class="set-recap">${sets.map((v,i)=>{const n=String(v).split(/[-–:]/),won=Number(n[0])>Number(n[1]);return `<div class="recap-set"><span>SET ${i+1}</span><strong>${esc(v)}</strong><small>${won?'Archmere':Number(n[1])>Number(n[0])?esc(g.opponent):'Recorded score'}</small></div>`}).join('')}</div><p class="set-key">Scores listed Archmere first.</p>`:'<p class="archive-empty">Set scores aren’t listed in the official results for this match.</p>'}</section>
  <section class="report-box"><div class="report-section-title"><span>02</span><h2>The box score</h2></div><p class="box-subtitle">Archmere player statistics</p>
- ${rows.length?`<div class="box-explorer" data-game="${esc(g.id)}"><div class="box-table-wrap">${boxTable(rows)}</div><p class="bar-key">Tap a column to sort · Match leader in green · A dash means unreported, not zero.</p></div>`:'<div class="archive-empty"><h3>No player stats published</h3><p>The match result is on record. Individual stats weren’t available on the official results page.</p></div>'}
+ ${rows.length?`<div class="box-explorer" data-game="${esc(g.id)}">${boxLeaders(rows)}<div class="box-table-wrap">${boxTable(rows)}</div><p class="bar-key">Tap a column to sort · Match leader in green · A dash means unreported, not zero.</p></div>`:'<div class="archive-empty"><h3>No player stats published</h3><p>The match result is on record. Individual stats weren’t available on the official results page.</p></div>'}
  <details class="box-notes"><summary>About these statistics</summary>${note()}</details></section>
  ${issues.length?`<details class="box-notes"><summary>Source notes for this match (${issues.length})</summary><a class="button" href="#review">Review questioned results →</a>${issues.map(i=>`<div class="note"><b>${esc(i.name)}</b><p>${esc(i.reason)}</p><p>Published text: ${esc(i.raw)}</p></div>`).join('')}</details>`:''}
  ${resolvedReviews((D.resolvedIssues||[]).filter(i=>String(i.id)===String(g.id)))}

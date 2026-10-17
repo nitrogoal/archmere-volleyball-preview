@@ -610,3 +610,17 @@ body .player-honors h2{font:400 34px/1 var(--display);text-transform:uppercase;l
 .box-table tbody th,.box-table tfoot th{background:none;white-space:normal}
 .box-table tbody tr:nth-child(even) th{background:none}
 .box-table thead th{border:0;letter-spacing:.08em;text-transform:uppercase}
+/* Box score: match-leader cards (ink, dot texture, gradient numbers like the page stamps) */
+.box-leaders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.box-leader{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;min-width:0;padding:14px 14px 13px;background:var(--ink);border-radius:14px;color:#fff;text-decoration:none}
+.box-leader:before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(circle,#ffffff2e 1.2px,transparent 1.6px) 0 0/7px 7px;-webkit-mask-image:linear-gradient(115deg,transparent 35%,#000 95%);mask-image:linear-gradient(115deg,transparent 35%,#000 95%)}
+.box-leader:after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;background:repeating-linear-gradient(-45deg,var(--green) 0 8px,#ffffff26 8px 16px)}
+.box-leader .bl-cat{font:700 10px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--mint)}
+.box-leader strong{display:block;margin:6px 0 4px;font:400 54px/.9 var(--display);background:linear-gradient(180deg,#fff 55%,#bfe8c9);-webkit-background-clip:text;background-clip:text;color:transparent;padding-top:.08em}
+.box-leader b{font:400 16px/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em;color:#fff;overflow-wrap:anywhere}
+.box-leader:hover{background:#16201b}
+/* Leader cell: soft green pill; sorted column: share-of-leader bar under each number */
+.box-table td span{display:inline-block;min-width:1.6em;padding:3px 5px;border-radius:999px}
+.box-table td.is-lead span{background:#0f6b3a1a;color:var(--green)}
+.box-table td.is-sorted[style]{background-image:linear-gradient(var(--green),var(--green));background-repeat:no-repeat;background-size:calc(var(--share) * .7) 3px;background-position:50% calc(100% - 5px)}
+@media(max-width:600px){.box-leaders{gap:6px}.box-leader{padding:11px 10px 12px;border-radius:12px}.box-leader strong{font-size:42px}.box-leader b{font-size:13px}.box-leader .bl-cat{font-size:9px}}
