@@ -760,15 +760,13 @@ html:has(.leader-modal[open]){overflow:hidden}
 .share-cue{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--light);color:var(--green);flex:0 0 auto;transition:background .15s,color .15s}
 .share-cue svg{width:13px;height:13px}
 .share-hint{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:600 12px var(--body);color:var(--muted)}
-.box-leader .bl-share{position:absolute;top:10px;right:10px;width:26px;height:26px;background:#ffffff1f;color:#fff;z-index:1}
-.box-leader:hover .bl-share{background:#fff;color:var(--ink)}
 .share-tip{display:flex;align-items:center;gap:12px;margin:14px 0 2px;padding:10px 10px 10px 14px;border:1px solid #cfe3d4;border-radius:12px;background:#eef6f0}
 .share-tip .share-cue{background:var(--green);color:#fff;width:28px;height:28px}
 .share-tip p{flex:1;margin:0;font:500 13px/1.4 var(--body);color:var(--ink-2)}
 .share-tip b{color:var(--ink)}
 .share-tip-x{flex:0 0 auto;width:30px;height:30px;border:0;border-radius:50%;background:none;color:var(--muted);font:400 20px/1 var(--body);cursor:pointer}
 .share-tip-x:hover{background:#dbe9df;color:var(--ink)}
-@media(max-width:600px){.box-leader .bl-share{top:7px;right:7px;width:22px;height:22px}.box-leader .bl-share svg{width:11px;height:11px}.share-tip{gap:10px;padding:9px 8px 9px 12px}.share-tip p{font-size:12.5px}}
+@media(max-width:600px){.share-tip{gap:10px;padding:9px 8px 9px 12px}.share-tip p{font-size:12.5px}}
 /* Share cues, round 2: a line in each card's action column, and a Share pill on the Next up card */
 .game .res .share-line{display:inline-flex;align-items:center;gap:5px;font:600 12px var(--body);color:var(--green);padding:2px 0;white-space:nowrap}
 .game .res .share-line svg{width:13px;height:13px}
@@ -785,3 +783,10 @@ html:has(.leader-modal[open]){overflow:hidden}
 @media(max-width:420px){.game .res .share-line .sl-long{display:none}.game .res .share-line .sl-short{display:inline}}
 /* Leader card label hugs its text and stays clear of the corner share icon */
 .box-leader .bl-cat{align-self:flex-start;max-width:calc(100% - 34px)}
+/* Leader cards: a labelled Share pill (top-right on wide screens, its own line under the name on phones) */
+.box-leader .bl-share{position:absolute;top:10px;right:10px;z-index:1;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:999px;background:#ffffff1f;color:#fff;font:700 10px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;transition:background .15s,color .15s}
+.box-leader .bl-share svg{width:12px;height:12px}
+.box-leader .bl-share b{font:inherit}
+.box-leader:hover .bl-share{background:#fff;color:var(--ink)}
+.box-leader .bl-cat{max-width:calc(100% - 80px)}
+@media(max-width:600px){.box-leader .bl-share{position:static;align-self:flex-start;order:9;margin-top:9px;padding:4px 9px 4px 7px;font-size:9px}.box-leader .bl-share svg{width:11px;height:11px}.box-leader .bl-cat{max-width:none}}
