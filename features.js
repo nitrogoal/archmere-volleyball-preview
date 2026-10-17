@@ -450,7 +450,7 @@ function scheduleCalendar(list, isUp, off, today) {
     if (team) return `<span class="cal-ev team" title="${esc(s.opponent)}"><small><span class="cal-long">${esc(s.kind)}</span><span class="cal-short" aria-hidden="true">${esc(s.kind==='Scrimmage'?'Scrim':s.kind.split(' ')[0])}</span></small><b>${esc(calShort(s.opponent))}</b></span>`;
     if (g && g.result) return `<button type="button" class="cal-ev res ${g.result === 'L' ? 'loss' : 'win'}" data-postgame="${esc(g.id)}" aria-haspopup="dialog" aria-label="${g.result === 'W' ? 'Win' : 'Loss'} ${esc(g.score)} ${where === '@' ? 'at' : 'vs'} ${esc(s.opponent)}, open postgame graphic">${crest(s.opponent)}<span class="cal-txt"><b>${g.result} ${esc(g.score)}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></button>`;
     if (off(s)) return `<span class="cal-ev off" title="${esc(s.opponent)}: ${esc(s.status)}">${crest(s.opponent)}<span class="cal-txt"><b>${esc(s.status)}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></span>`;
-    return `<a class="cal-ev ${isUp(s) ? 'up' : 'pending'} ${s.homeAway === 'H' ? 'home' : ''}" href="${route('opponent', {name: s.opponent})}" aria-label="${where === '@' ? 'At' : 'Versus'} ${esc(s.opponent)}, ${esc(s.time || 'time TBD')}">${crest(s.opponent)}<span class="cal-txt"><b>${esc((s.time || 'TBD').replace(/\s*(AM|PM)$/i, m => m.trim()[0].toLowerCase()))}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></a>`;
+    return isUp(s) ? `<button type="button" class="cal-ev up ${s.homeAway === 'H' ? 'home' : ''}" data-gameday="${esc(s.date)}" data-opp="${esc(s.opponent)}" aria-haspopup="dialog" aria-label="${where === '@' ? 'At' : 'Versus'} ${esc(s.opponent)}, ${esc(s.time || 'time TBD')}, open game-day graphic">${crest(s.opponent)}<span class="cal-txt"><b>${esc((s.time || 'TBD').replace(/\s*(AM|PM)$/i, m => m.trim()[0].toLowerCase()))}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></button>` : `<a class="cal-ev pending ${s.homeAway === 'H' ? 'home' : ''}" href="${route('opponent', {name: s.opponent})}" aria-label="${where === '@' ? 'At' : 'Versus'} ${esc(s.opponent)}, ${esc(s.time || 'time TBD')}">${crest(s.opponent)}<span class="cal-txt"><b>${esc((s.time || 'TBD').replace(/\s*(AM|PM)$/i, m => m.trim()[0].toLowerCase()))}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></a>`;
   };
   return months.map(([y, m]) => {
     const lead = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate(), label = new Date(y, m, 1).toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
@@ -460,7 +460,7 @@ function scheduleCalendar(list, isUp, off, today) {
       return `<div class="cal-day${evs.length ? ' has' : ''}${isToday ? ' today' : ''}"><span class="cal-n">${i + 1}</span>${evs.map(chip).join('')}</div>`;
     }).join('');
     return `<h2 class="month">${label}<span>${inMonth.filter(s => s.kind === 'Match').length} matches${w + l ? ` · ${w}–${l}` : ''}</span></h2><div class="cal" role="group" aria-label="${label}"><div class="cal-head" aria-hidden="true">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<span><b>${d}</b><i>${d[0]}</i></span>`).join('')}</div><div class="cal-grid">${cells}</div></div>`;
-  }).join('') + '<p class="cal-key"><span class="k win">W</span><span class="k loss">L</span> Tap a result for the postgame graphic · Tap an upcoming game for the head-to-head</p>';
+  }).join('') + '<p class="cal-key"><span class="k win">W</span><span class="k loss">L</span> Tap any game for a shareable graphic</p>';
 }
 
 /* ---------- Rafter banners: drop and swing in when scrolled into view; each then swings on its own ---------- */
@@ -594,7 +594,7 @@ function openGameday(date, opponent, from) {
 }
 document.addEventListener('click', e => {
   const card = e.target.closest('[data-gameday]');
-  if (card && !e.target.closest('a,button,summary,details')) openGameday(card.dataset.gameday, card.dataset.opp, card);
+  if (card && (!e.target.closest('a,button,summary,details') || e.target.closest('a,button,summary,details') === card)) openGameday(card.dataset.gameday, card.dataset.opp, card);
 });
 document.addEventListener('keydown', e => {
   const card = (e.key === 'Enter' || e.key === ' ') && e.target.matches?.('[data-gameday]') && e.target;
@@ -652,3 +652,15 @@ function openPlayerCard(id, from) {
   });
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-player-card]'); if (b) openPlayerCard(b.dataset.playerCard, b); });
+
+/* ---------- Share cues: one icon wherever a share graphic opens, plus a one-time tip on the schedule ---------- */
+const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5"/></svg>';
+const shareCue = (cls = '') => `<span class="share-cue ${cls}" aria-hidden="true">${SHARE_ICON}</span>`;
+const TIP_KEY = 'auksvb-tip-share-v1';
+const tipSeen = () => { try { return localStorage.getItem(TIP_KEY) === '1'; } catch { return false; } };
+const shareTip = () => tipSeen() ? '' : `<div class="share-tip" role="note">${shareCue()}<p><b>New: share graphics.</b> Tap any game for a post-ready graphic you can save or post.</p><button type="button" class="share-tip-x" aria-label="Dismiss tip">×</button></div>`;
+document.addEventListener('click', e => {
+  const x = e.target.closest('.share-tip-x'); if (!x) return;
+  try { localStorage.setItem(TIP_KEY, '1'); } catch {}
+  x.closest('.share-tip')?.remove();
+});

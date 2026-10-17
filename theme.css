@@ -756,3 +756,20 @@ html:has(.leader-modal[open]){overflow:hidden}
 .skel-grid div{height:86px}
 @keyframes skel{from{background-position:100% 0}to{background-position:0 0}}
 @media(prefers-reduced-motion:reduce){.skel>*,.skel-hero i,.skel-grid div{animation:none}}
+/* Share cues: the same small icon wherever a tap opens a share graphic */
+.share-cue{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--light);color:var(--green);flex:0 0 auto;transition:background .15s,color .15s}
+.share-cue svg{width:13px;height:13px}
+.game .res .res-top{display:inline-flex;align-items:center;gap:6px}
+.game.has-graphic:hover .share-cue,.game.has-graphic:focus-visible .share-cue{background:var(--green);color:#fff}
+.share-hint{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:600 12px var(--body);color:var(--muted)}
+.box-leader .bl-share{position:absolute;top:10px;right:10px;width:26px;height:26px;background:#ffffff1f;color:#fff;z-index:1}
+.box-leader:hover .bl-share{background:#fff;color:var(--ink)}
+.share-tip{display:flex;align-items:center;gap:12px;margin:14px 0 2px;padding:10px 10px 10px 14px;border:1px solid #cfe3d4;border-radius:12px;background:#eef6f0}
+.share-tip .share-cue{background:var(--green);color:#fff;width:28px;height:28px}
+.share-tip p{flex:1;margin:0;font:500 13px/1.4 var(--body);color:var(--ink-2)}
+.share-tip b{color:var(--ink)}
+.share-tip-x{flex:0 0 auto;width:30px;height:30px;border:0;border-radius:50%;background:none;color:var(--muted);font:400 20px/1 var(--body);cursor:pointer}
+.share-tip-x:hover{background:#dbe9df;color:var(--ink)}
+@media(max-width:600px){.box-leader .bl-share{top:7px;right:7px;width:22px;height:22px}.box-leader .bl-share svg{width:11px;height:11px}.share-tip{gap:10px;padding:9px 8px 9px 12px}.share-tip p{font-size:12.5px}}
+.feature .f-share{position:absolute;right:16px;bottom:22px;width:30px;height:30px;background:#ffffff26;color:#fff;z-index:2}
+.feature.has-graphic:hover .f-share{background:#fff;color:var(--green)}
