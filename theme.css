@@ -579,3 +579,34 @@ body .player-honors h2{font:400 34px/1 var(--display);text-transform:uppercase;l
 .player-college .pc-src{color:var(--green);font-weight:700}
 .player-college:hover{border-color:var(--green)}
 .player-college+.player-honors{padding-top:18px}
+/* Game page box score: one compact table instead of a card per player */
+.box-table-wrap{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.box-table{width:100%;border-collapse:collapse;table-layout:fixed;font:500 14px/1.25 var(--body);color:var(--ink)}
+.box-table col,.box-table th,.box-table td{box-sizing:border-box}
+.box-table thead th{background:var(--ink);color:#fff;padding:0;text-align:center;font:700 11px var(--body);letter-spacing:.08em;text-transform:uppercase}
+.box-table thead th.bt-player{text-align:left;padding:0 14px;width:38%}
+.box-table thead button{all:unset;box-sizing:border-box;display:block;width:100%;padding:12px 2px;cursor:pointer;color:#c9d2cc}
+.box-table thead button:hover,.box-table thead button:focus-visible{color:#fff}
+.box-table thead button:focus-visible{outline:2px solid var(--mint);outline-offset:-2px}
+.box-table thead th.is-sorted{background:var(--green)}
+.box-table thead th.is-sorted button{color:#fff}
+.box-table thead th.is-sorted button:after{content:' ↓'}
+.box-table .bt-short{display:none}
+.box-table tbody tr+tr{border-top:1px solid var(--line)}
+.box-table tbody tr:nth-child(even){background:#f8faf7}
+.box-table th.bt-player{text-align:left;font-weight:600;padding:10px 8px 10px 14px;overflow-wrap:anywhere}
+.box-table th.bt-player a{color:var(--ink);text-decoration:none}
+.box-table th.bt-player a:hover{color:var(--green);text-decoration:underline}
+.box-table th.bt-player small{display:inline-block;margin-left:6px;font:600 11px var(--body);color:var(--muted)}
+.box-table td{text-align:center;padding:10px 2px;font:600 20px/1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.box-table td.is-sorted{background:#0f6b3a0d}
+.box-table td.is-lead{color:var(--green);font-weight:800}
+.box-table tfoot tr{border-top:2px solid var(--ink)}
+.box-table tfoot th.bt-player{font:700 11px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.box-table tfoot td{font-weight:700;color:var(--ink)}
+@media(max-width:600px){.box-table .bt-long{display:none}.box-table .bt-short{display:inline}.box-table thead th.bt-player{width:42%;padding-left:10px}.box-table th.bt-player{padding-left:10px;font-size:13px}.box-table th.bt-player small{display:block;margin:2px 0 0}.box-table td{font-size:19px}}
+/* Reset the site-wide table defaults (tinted th, right-aligned cells, nowrap) inside the box score */
+.box-table th,.box-table td{border:0;letter-spacing:0;text-transform:none}
+.box-table tbody th,.box-table tfoot th{background:none;white-space:normal}
+.box-table tbody tr:nth-child(even) th{background:none}
+.box-table thead th{border:0;letter-spacing:.08em;text-transform:uppercase}
