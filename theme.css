@@ -667,9 +667,7 @@ html:has(.leader-modal[open]){overflow:hidden}
 /* Schedule: played results open the postgame graphic */
 .game.has-graphic{cursor:pointer;transition:border-color .15s}
 .game.has-graphic:hover{border-color:#9bc7a8}
-.game .res .pg-btn{all:unset;cursor:pointer;font:600 12px var(--body);color:var(--green);padding:2px 0}
-.game .res .pg-btn:hover{text-decoration:underline}
-.game .res .pg-btn:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
+.game.has-graphic:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 /* Schedule: List / Calendar switch, first item in the toolbar actions */
 .view-seg{display:inline-flex;padding:3px;border-radius:999px;background:#fff;border:1px solid var(--line)}
 .view-seg a{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;font:600 12px var(--body);color:var(--ink-2);text-decoration:none}

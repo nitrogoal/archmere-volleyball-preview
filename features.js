@@ -234,6 +234,11 @@ fillNextCheck(); setInterval(fillNextCheck, 60000);
 
 /* ---------- Match-leader graphic: drawn on a canvas at Instagram portrait size, shown in the dialog and saved as-is ---------- */
 const LG = {w: 1080, h: 1350, green: '#0f6b3a', deep: '#0a4a28', ink: '#0d1210', mint: '#d6efdc', fade: '#bfe8c9'};
+// Win (and match-leader) graphics are bright kelly green; losses go dark: ink field, deep-green bars, green dots
+const LG_THEMES = {
+  win: {field: LG.green, bar: LG.ink, dot: '0,0,0', dotMax: 0.24, shadow: LG.ink, fade: LG.fade},
+  loss: {field: LG.ink, bar: LG.deep, dot: '15,107,58', dotMax: 0.55, shadow: LG.green, fade: '#9aa69f'}
+};
 let lgLogo;
 const lgLoadLogo = () => lgLogo ||= new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'archmere-a-dark.png'; });
 async function lgFonts() {
@@ -318,36 +323,37 @@ const fileSlug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replac
 
 /* ---------- Postgame graphic (schedule result cards) ---------- */
 // Shared canvas frame: green field + dots, ink header with the lockup, stripes, ink footer
-async function lgFrame(kicker, sub, watermark) {
+async function lgFrame(kicker, sub, watermark, mode = 'win') {
+  const T = LG_THEMES[mode];
   await Promise.all([lgFonts(), lgLoadLogo()]);
   const c = document.createElement('canvas'); c.width = LG.w; c.height = LG.h;
   const x = c.getContext('2d'), W = LG.w, M = 64;
-  x.fillStyle = LG.green; x.fillRect(0, 0, W, LG.h);
+  x.fillStyle = T.field; x.fillRect(0, 0, W, LG.h);
   for (let py = 160; py < LG.h; py += 22) for (let px = 0; px < W; px += 22) {
-    const t = (0.9 * px / W + 0.45 * py / LG.h) / 1.35, a = Math.max(0, Math.min(1, (t - 0.3) / 0.55)) * 0.24;
-    if (a > 0) { x.fillStyle = `rgba(0,0,0,${a.toFixed(3)})`; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill(); }
+    const t = (0.9 * px / W + 0.45 * py / LG.h) / 1.35, a = Math.max(0, Math.min(1, (t - 0.3) / 0.55)) * T.dotMax;
+    if (a > 0) { x.fillStyle = `rgba(${T.dot},${a.toFixed(3)})`; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill(); }
   }
   if (watermark) { x.save(); x.font = '400 360px Anton'; x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 3; const wm = watermark.toUpperCase(); x.strokeText(wm, W - x.measureText(wm).width + 40, 1150); x.restore(); }
-  x.fillStyle = LG.ink; x.fillRect(0, 0, W, 150);
+  x.fillStyle = T.bar; x.fillRect(0, 0, W, 150);
   const logo = await lgLogo; if (logo) x.drawImage(logo, M, 33, 113, 84);
   x.font = '400 46px Anton'; x.fillStyle = '#fff'; x.fillText('ARCHMERE', M + 134, 74);
   x.fillStyle = '#8fd4a4'; x.fillText('VOLLEYBALL', M + 134, 122);
   x.font = '800 24px Inter'; x.fillStyle = LG.mint; lgTracked(x, kicker, W - M, 80, 5, 'right');
   x.font = '600 24px Inter'; x.fillStyle = '#9aa69f'; lgTracked(x, sub, W - M, 116, 3, 'right');
   lgStripe(x, 150, 22); lgStripe(x, 1186, 22);
-  x.fillStyle = LG.ink; x.fillRect(0, 1208, W, LG.h - 1208);
+  x.fillStyle = T.bar; x.fillRect(0, 1208, W, LG.h - 1208);
   x.font = '400 30px Anton'; x.fillStyle = LG.mint; lgTracked(x, 'AUKSVB.COM', W - M, 1320, 4, 'right');
-  return {c, x, W, M};
+  return {c, x, W, M, T};
 }
 // Gradient display number/word with the hard ink shadow
-function lgBig(x, text, px, base, size) {
-  x.font = `400 ${size}px Anton`; x.fillStyle = LG.ink; x.fillText(text, px + 16, base + 16);
-  const g = x.createLinearGradient(0, base - size * .78, 0, base); g.addColorStop(0, '#fff'); g.addColorStop(.55, '#fff'); g.addColorStop(1, LG.fade);
+function lgBig(x, text, px, base, size, T = LG_THEMES.win) {
+  x.font = `400 ${size}px Anton`; x.fillStyle = T.shadow; x.fillText(text, px + 16, base + 16);
+  const g = x.createLinearGradient(0, base - size * .78, 0, base); g.addColorStop(0, '#fff'); g.addColorStop(.55, '#fff'); g.addColorStop(1, T.fade);
   x.fillStyle = g; x.fillText(text, px, base); return x.measureText(text).width;
 }
 // d: {win, loss, score, opponent, away, sets[[a,b]], record, date, place, season, phase, leaders[{cat, name, value}]}
 async function postgameGraphic(d) {
-  const {c, x, W, M} = await lgFrame('FINAL', `${d.season} · GIRLS VARSITY`, d.win ? 'WIN' : 'FINAL');
+  const mode = d.loss ? 'loss' : 'win', {c, x, W, M, T} = await lgFrame('FINAL', `${d.season} · GIRLS VARSITY`, d.win ? 'WIN' : 'FINAL', mode);
   // Center the content block between the stripes when there are no sets/performers to fill it
   const nL = Math.min(3, d.leaders.length), need = 470 + (d.sets.length ? 180 : 30) + (nL ? 18 + nL * 84 : 0), off = Math.max(0, (1000 - need) / 2 - 10);
   x.save(); x.translate(0, off);
@@ -356,20 +362,20 @@ async function postgameGraphic(d) {
   const opp = `${d.away ? '@' : 'VS'} ${d.opponent.toUpperCase()}`;
   lgFit(x, opp, W - 2 * M, 64, s => `400 ${s}px Anton`); x.fillStyle = '#fff'; x.fillText(opp, M, 312);
   // The score, with the script word slashed across it
-  const score = d.score.replace('-', '–'), sw = lgBig(x, score, M, 640, 330);
-  const word = d.win ? 'Auks win' : 'Final';
+  const score = d.score.replace('-', '–'), sw = lgBig(x, score, M, 640, 330, T);
+  const word = d.win ? 'Auks win' : d.loss ? 'On to the next' : 'Final';
   const sx = Math.min(M + sw - 40, W - M - 300); lgFit(x, word, W - M - sx + 20, 130, s => `400 ${s}px Yellowtail`);
-  x.save(); x.translate(sx, 610); x.rotate(-0.14); x.fillStyle = LG.ink; x.fillText(word, 6, 8); x.fillStyle = '#fff'; x.fillText(word, 0, 0); x.restore();
+  x.save(); x.translate(sx, 610); x.rotate(-0.14); x.fillStyle = T.shadow; x.fillText(word, 6, 8); x.fillStyle = d.loss ? LG.mint : '#fff'; x.fillText(word, 0, 0); x.restore();
   // Set scores
   let y = 700;
   if (d.sets.length) {
     const n = d.sets.length, gap = 14, tw = Math.min(200, (W - 2 * M - gap * (n - 1)) / n), th = 120;
     d.sets.forEach(([a, b], k) => {
       const tx = M + k * (tw + gap), won = a > b;
-      lgRound(x, tx, y, tw, th, 18); x.fillStyle = won ? '#fff' : 'rgba(255,255,255,.10)'; x.fill();
+      lgRound(x, tx, y, tw, th, 18); x.fillStyle = won ? (d.loss ? LG.green : '#fff') : 'rgba(255,255,255,.10)'; x.fill();
       if (!won) { x.strokeStyle = 'rgba(255,255,255,.28)'; x.lineWidth = 2; x.stroke(); }
-      x.textAlign = 'center'; lgFit(x, `${a}–${b}`, tw - 20, 54, s => `400 ${s}px Anton`); x.fillStyle = won ? LG.green : '#fff'; x.fillText(`${a}–${b}`, tx + tw / 2, y + 70);
-      x.textAlign = 'left'; x.font = '800 18px Inter'; x.fillStyle = won ? LG.ink : LG.mint; lgTracked(x, `SET ${k + 1}`, tx + tw / 2, y + 102, 3, 'center');
+      x.textAlign = 'center'; lgFit(x, `${a}–${b}`, tw - 20, 54, s => `400 ${s}px Anton`); x.fillStyle = won && !d.loss ? LG.green : '#fff'; x.fillText(`${a}–${b}`, tx + tw / 2, y + 70);
+      x.textAlign = 'left'; x.font = '800 18px Inter'; x.fillStyle = won && !d.loss ? LG.ink : LG.mint; lgTracked(x, `SET ${k + 1}`, tx + tw / 2, y + 102, 3, 'center');
     });
     y += th + 60;
   } else y += 30;
@@ -409,11 +415,15 @@ function openPostgame(id, from) {
     render: () => postgameGraphic({win: g.result === 'W', loss: g.result === 'L', score: g.score, opponent: opp, away: g.homeAway === 'A', sets, record, date: date(g.date), place: g.homeAway === 'H' ? 'Home' : g.homeAway === 'A' ? 'Away' : 'Neutral site', season: g.season, phase: g.phase, leaders})
   });
 }
-// Schedule result cards: tap the card (outside its links) or its Graphic button
+// Schedule result cards: tap the card (outside its links), or focus it and press Enter/Space
 document.addEventListener('click', e => {
   const btn = e.target.closest('[data-postgame]'), card = !btn && e.target.closest('article.game[data-game]');
   if (btn) { openPostgame(btn.dataset.postgame, btn); return; }
-  if (card && !e.target.closest('a,button,summary,details')) openPostgame(card.dataset.game, card.querySelector('[data-postgame]'));
+  if (card && !e.target.closest('a,button,summary,details')) openPostgame(card.dataset.game, card);
+});
+document.addEventListener('keydown', e => {
+  const card = (e.key === 'Enter' || e.key === ' ') && e.target.matches?.('article.game[data-game]') && e.target;
+  if (card) { e.preventDefault(); openPostgame(card.dataset.game, card); }
 });
 
 /* ---------- Schedule calendar view (#schedule?view=calendar): month grids for games, results and team dates ---------- */
