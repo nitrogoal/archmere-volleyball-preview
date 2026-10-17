@@ -231,3 +231,216 @@ function fillNextCheck() {
   el.textContent = ` · Next check ~${sameDay ? '' : 'tomorrow '}${n.toLocaleTimeString('en-US', {timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit'})} ET`;
 }
 fillNextCheck(); setInterval(fillNextCheck, 60000);
+
+/* ---------- Match-leader graphic: drawn on a canvas at Instagram portrait size, shown in the dialog and saved as-is ---------- */
+const LG = {w: 1080, h: 1350, green: '#0f6b3a', deep: '#0a4a28', ink: '#0d1210', mint: '#d6efdc', fade: '#bfe8c9'};
+let lgLogo;
+const lgLoadLogo = () => lgLogo ||= new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'archmere-a-dark.png'; });
+async function lgFonts() {
+  if (!document.fonts) return;
+  await Promise.all(['400 100px Anton', '400 100px Yellowtail', '700 30px Inter', '800 30px Inter', '600 30px Inter'].map(f => document.fonts.load(f).catch(() => {})));
+}
+// Shrink a font size until the text fits the width
+function lgFit(ctx, text, max, size, font) { do { ctx.font = font(size); } while (ctx.measureText(text).width > max && (size -= 2) > 10); return size; }
+function lgTracked(ctx, text, x, y, spacing, align = 'left') {
+  const w = [...text].reduce((s, c) => s + ctx.measureText(c).width + spacing, -spacing);
+  let cx = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
+  for (const c of text) { ctx.fillText(c, cx, y); cx += ctx.measureText(c).width + spacing; }
+}
+function lgStripe(ctx, y, h) {
+  ctx.save(); ctx.beginPath(); ctx.rect(0, y, LG.w, h); ctx.clip();
+  ctx.fillStyle = LG.ink; ctx.fillRect(0, y, LG.w, h); ctx.fillStyle = LG.green;
+  for (let x = -h; x < LG.w + h; x += 34) { ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + 17, y + h); ctx.lineTo(x + 17 + h, y); ctx.lineTo(x + h, y); ctx.fill(); }
+  ctx.restore();
+}
+function lgRound(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+// d: {value, cat, catShort[], names[], first, last, tie, meta, season, result, score, opponent, away, date, stats|null, lead}
+async function leaderGraphic(d) {
+  const {c, x, W, M} = await lgFrame(d.tie ? 'TIED FOR THE LEAD' : 'MATCH LEADER', `${d.season} · GIRLS VARSITY`, d.last);
+  // The number, with the stat word in script slashed across its lower right
+  const base = 640, nw = lgBig(x, String(d.value), M, base, String(d.value).length > 2 ? 400 : 500);
+  const sx = M + nw - 50; lgFit(x, d.cat, W - M - sx + 30, 170, s => `400 ${s}px Yellowtail`);
+  x.save(); x.translate(sx, base - 40); x.rotate(-0.14); x.fillStyle = LG.ink; x.fillText(d.cat, 6, 8); x.fillStyle = '#fff'; x.fillText(d.cat, 0, 0); x.restore();
+  // Name: first name in mint over a big last name
+  let y = d.tie ? 760 : 730;
+  if (!d.tie && d.first) { x.font = '400 60px Anton'; x.fillStyle = LG.mint; x.fillText(d.first.toUpperCase(), M, y); y += 128; } else y += 110;
+  const line = d.tie ? d.names.join(' & ').toUpperCase() : d.last.toUpperCase();
+  const ns = lgFit(x, line, W - 2 * M, d.tie ? 120 : 150, s => `400 ${s}px Anton`); x.fillStyle = '#fff'; x.fillText(line, M, y); y += Math.max(40, ns * .1);
+  if (d.meta) { x.font = '700 28px Inter'; x.fillStyle = LG.mint; lgTracked(x, d.meta.toUpperCase(), M, y + 26, 4); }
+  // The player's line for the match, leading stat inverted
+  if (d.stats) {
+    const top = 1018, gap = 16, tw = (W - 2 * M - gap * 4) / 5, th = 130;
+    d.stats.forEach((v, k) => {
+      const tx = M + k * (tw + gap), lead = k === d.lead;
+      lgRound(x, tx, top, tw, th, 18); x.fillStyle = lead ? '#fff' : 'rgba(255,255,255,.10)'; x.fill();
+      if (!lead) { x.strokeStyle = 'rgba(255,255,255,.28)'; x.lineWidth = 2; x.stroke(); }
+      x.textAlign = 'center'; x.font = '400 66px Anton'; x.fillStyle = lead ? LG.green : '#fff'; x.fillText(v == null ? '–' : String(v), tx + tw / 2, top + 78);
+      x.textAlign = 'left'; x.font = '800 20px Inter'; x.fillStyle = lead ? LG.ink : LG.mint; lgTracked(x, d.catShort[k].toUpperCase(), tx + tw / 2, top + 112, 3, 'center');
+    });
+  }
+  // Footer: result, opponent, date
+  const res = d.result ? `${d.result === 'W' ? 'WIN' : 'LOSS'} ${d.score}` : d.score || '';
+  x.font = '400 56px Anton'; x.fillStyle = '#fff'; x.fillText(res, M, 1282);
+  const rw = res ? x.measureText(res).width + 26 : 0, opp = `${d.away ? '@' : 'VS'} ${d.opponent.toUpperCase()}`;
+  lgFit(x, opp, W - 2 * M - rw - 200, 34, s => `400 ${s}px Anton`); x.fillStyle = '#8fd4a4'; x.fillText(opp, M + rw, 1282);
+  x.font = '600 24px Inter'; x.fillStyle = '#9aa69f'; lgTracked(x, d.date.toUpperCase(), M, 1320, 3);
+  return c;
+}
+// Share sheet on phones (Save Image / Instagram); download elsewhere. The file is prepared ahead so the tap
+// still counts as a user gesture when navigator.share runs.
+function shareGraphic(file, btn) {
+  if (navigator.canShare?.({files: [file]})) { navigator.share({files: [file], title: 'Archmere Volleyball'}).catch(() => {}); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  if (btn) { const t = btn.innerHTML; btn.textContent = 'Saved ✓'; setTimeout(() => btn.innerHTML = t, 1800); }
+}
+
+/* ---------- Graphic dialog: one shell for every post-ready graphic (match leader, postgame) ---------- */
+// opts: {title, body (html under the image), alt, file, render: () => Promise<canvas>, from}
+function showGraphicDialog(opts) {
+  let d = $('#leader-modal');
+  if (!d) {
+    d = document.createElement('dialog'); d.id = 'leader-modal'; d.className = 'leader-modal'; d.setAttribute('aria-labelledby', 'lm-title'); document.body.append(d);
+    d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-lm-close]') || e.target.closest('a')) d.close(); });
+    d.addEventListener('close', () => d._from?.focus({preventScroll: true}));
+    addEventListener('hashchange', () => d.open && d.close());
+  }
+  const token = d._token = {}; d._from = opts.from;
+  d.innerHTML = `<h2 class="lm-sr" id="lm-title">${esc(opts.title)}</h2><div class="lm-figure"></div><div class="lm-body">${opts.body || ''}<div class="lm-actions"><button type="button" class="lm-save" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Save image</button>${opts.links || ''}<button type="button" class="lm-done" data-lm-close>Close</button></div></div>`;
+  d.showModal();
+  opts.render().then(cv => cv.toBlob(blob => {
+    if (d._token !== token || !blob) return;
+    const img = new Image(); img.className = 'lm-img'; img.alt = opts.alt; img.src = URL.createObjectURL(blob); d.querySelector('.lm-figure').prepend(img);
+    const file = new File([blob], opts.file, {type: 'image/png'}), btn = d.querySelector('.lm-save'); btn.disabled = false; btn.onclick = () => shareGraphic(file, btn);
+  }, 'image/png'));
+}
+const fileSlug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/* ---------- Postgame graphic (schedule result cards) ---------- */
+// Shared canvas frame: green field + dots, ink header with the lockup, stripes, ink footer
+async function lgFrame(kicker, sub, watermark) {
+  await Promise.all([lgFonts(), lgLoadLogo()]);
+  const c = document.createElement('canvas'); c.width = LG.w; c.height = LG.h;
+  const x = c.getContext('2d'), W = LG.w, M = 64;
+  x.fillStyle = LG.green; x.fillRect(0, 0, W, LG.h);
+  for (let py = 160; py < LG.h; py += 22) for (let px = 0; px < W; px += 22) {
+    const t = (0.9 * px / W + 0.45 * py / LG.h) / 1.35, a = Math.max(0, Math.min(1, (t - 0.3) / 0.55)) * 0.24;
+    if (a > 0) { x.fillStyle = `rgba(0,0,0,${a.toFixed(3)})`; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill(); }
+  }
+  if (watermark) { x.save(); x.font = '400 360px Anton'; x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 3; const wm = watermark.toUpperCase(); x.strokeText(wm, W - x.measureText(wm).width + 40, 1150); x.restore(); }
+  x.fillStyle = LG.ink; x.fillRect(0, 0, W, 150);
+  const logo = await lgLogo; if (logo) x.drawImage(logo, M, 33, 113, 84);
+  x.font = '400 46px Anton'; x.fillStyle = '#fff'; x.fillText('ARCHMERE', M + 134, 74);
+  x.fillStyle = '#8fd4a4'; x.fillText('VOLLEYBALL', M + 134, 122);
+  x.font = '800 24px Inter'; x.fillStyle = LG.mint; lgTracked(x, kicker, W - M, 80, 5, 'right');
+  x.font = '600 24px Inter'; x.fillStyle = '#9aa69f'; lgTracked(x, sub, W - M, 116, 3, 'right');
+  lgStripe(x, 150, 22); lgStripe(x, 1186, 22);
+  x.fillStyle = LG.ink; x.fillRect(0, 1208, W, LG.h - 1208);
+  x.font = '400 30px Anton'; x.fillStyle = LG.mint; lgTracked(x, 'AUKSVB.COM', W - M, 1320, 4, 'right');
+  return {c, x, W, M};
+}
+// Gradient display number/word with the hard ink shadow
+function lgBig(x, text, px, base, size) {
+  x.font = `400 ${size}px Anton`; x.fillStyle = LG.ink; x.fillText(text, px + 16, base + 16);
+  const g = x.createLinearGradient(0, base - size * .78, 0, base); g.addColorStop(0, '#fff'); g.addColorStop(.55, '#fff'); g.addColorStop(1, LG.fade);
+  x.fillStyle = g; x.fillText(text, px, base); return x.measureText(text).width;
+}
+// d: {win, loss, score, opponent, away, sets[[a,b]], record, date, place, season, phase, leaders[{cat, name, value}]}
+async function postgameGraphic(d) {
+  const {c, x, W, M} = await lgFrame('FINAL', `${d.season} · GIRLS VARSITY`, d.win ? 'WIN' : 'FINAL');
+  // Center the content block between the stripes when there are no sets/performers to fill it
+  const nL = Math.min(3, d.leaders.length), need = 470 + (d.sets.length ? 180 : 30) + (nL ? 18 + nL * 84 : 0), off = Math.max(0, (1000 - need) / 2 - 10);
+  x.save(); x.translate(0, off);
+  // Opponent line
+  x.font = '800 26px Inter'; x.fillStyle = LG.mint; lgTracked(x, (d.phase === 'Postseason' ? 'POSTSEASON' : 'REGULAR SEASON'), M, 236, 6);
+  const opp = `${d.away ? '@' : 'VS'} ${d.opponent.toUpperCase()}`;
+  lgFit(x, opp, W - 2 * M, 64, s => `400 ${s}px Anton`); x.fillStyle = '#fff'; x.fillText(opp, M, 312);
+  // The score, with the script word slashed across it
+  const score = d.score.replace('-', '–'), sw = lgBig(x, score, M, 640, 330);
+  const word = d.win ? 'Auks win' : 'Final';
+  const sx = Math.min(M + sw - 40, W - M - 300); lgFit(x, word, W - M - sx + 20, 130, s => `400 ${s}px Yellowtail`);
+  x.save(); x.translate(sx, 610); x.rotate(-0.14); x.fillStyle = LG.ink; x.fillText(word, 6, 8); x.fillStyle = '#fff'; x.fillText(word, 0, 0); x.restore();
+  // Set scores
+  let y = 700;
+  if (d.sets.length) {
+    const n = d.sets.length, gap = 14, tw = Math.min(200, (W - 2 * M - gap * (n - 1)) / n), th = 120;
+    d.sets.forEach(([a, b], k) => {
+      const tx = M + k * (tw + gap), won = a > b;
+      lgRound(x, tx, y, tw, th, 18); x.fillStyle = won ? '#fff' : 'rgba(255,255,255,.10)'; x.fill();
+      if (!won) { x.strokeStyle = 'rgba(255,255,255,.28)'; x.lineWidth = 2; x.stroke(); }
+      x.textAlign = 'center'; lgFit(x, `${a}–${b}`, tw - 20, 54, s => `400 ${s}px Anton`); x.fillStyle = won ? LG.green : '#fff'; x.fillText(`${a}–${b}`, tx + tw / 2, y + 70);
+      x.textAlign = 'left'; x.font = '800 18px Inter'; x.fillStyle = won ? LG.ink : LG.mint; lgTracked(x, `SET ${k + 1}`, tx + tw / 2, y + 102, 3, 'center');
+    });
+    y += th + 60;
+  } else y += 30;
+  // Top performers
+  if (d.leaders.length) {
+    x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, 'TOP PERFORMERS', M, y, 6); y += 18;
+    for (const l of d.leaders.slice(0, 3)) {
+      x.fillStyle = 'rgba(255,255,255,.22)'; x.fillRect(M, y, W - 2 * M, 2); y += 70;
+      x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, l.cat.toUpperCase(), M, y - 8, 4);
+      x.font = '400 64px Anton'; const vw = x.measureText(String(l.value)).width; x.fillStyle = '#fff'; x.fillText(String(l.value), W - M - vw, y + 2);
+      lgFit(x, l.name.toUpperCase(), W - 2 * M - 190 - vw - 30, 50, s => `400 ${s}px Anton`); x.fillStyle = '#fff'; x.fillText(l.name.toUpperCase(), M + 190, y);
+      y += 14;
+    }
+  }
+  x.restore();
+  // Footer: date, place, record
+  x.font = '400 50px Anton'; x.fillStyle = '#fff'; x.fillText(d.date.toUpperCase(), M, 1276);
+  x.font = '600 24px Inter'; x.fillStyle = '#9aa69f'; lgTracked(x, [d.place, d.record ? 'RECORD ' + d.record : ''].filter(Boolean).join(' · ').toUpperCase(), M, 1320, 3);
+  return c;
+}
+function openPostgame(id, from) {
+  const g = D.games.find(x => x.id === id); if (!g || !g.result) return;
+  const rows = D.stats.filter(s => s.id === id);
+  const sets = (g.sets || []).filter(Boolean).map(v => String(v).split(/[-–:]/).map(Number)).filter(v => v.length === 2 && v.every(n => !isNaN(n)));
+  const before = D.games.filter(x => x.season === g.season && x.result && serial(x.date) <= serial(g.date));
+  const record = `${before.filter(x => x.result === 'W').length}–${before.filter(x => x.result === 'L').length}`;
+  const short = n => { const p = n.replace(/\s*\(.*?\)/, '').trim().split(/\s+/); return p.length > 1 ? p[0][0] + '. ' + p.slice(1).join(' ') : n; };
+  const leaders = [0, 3, 4, 2, 1].map(i => {
+    const v = rows.map(r => r.values[i]).filter(v => v != null), max = Math.max(0, ...v); if (!max) return null;
+    const who = rows.filter(r => r.values[i] === max); return {cat: cats[i], value: max, name: who.length > 2 ? who.length + ' tied' : who.map(r => short(r.name)).join(' & ')};
+  }).filter(Boolean).slice(0, 3);
+  const opp = g.opponent, title = `${g.result === 'W' ? 'Win' : 'Final'} ${g.score} ${g.homeAway === 'A' ? 'at' : 'vs'} ${opp}`;
+  showGraphicDialog({
+    from, title: 'Postgame: ' + title, alt: `Postgame graphic: ${title}, ${date(g.date)}`,
+    file: `archmere-${fileSlug(opp)}-${g.date.replace(/\//g, '-')}.png`,
+    links: `<a href="${route('game', {id})}">Box score <span aria-hidden="true">→</span></a>`,
+    render: () => postgameGraphic({win: g.result === 'W', loss: g.result === 'L', score: g.score, opponent: opp, away: g.homeAway === 'A', sets, record, date: date(g.date), place: g.homeAway === 'H' ? 'Home' : g.homeAway === 'A' ? 'Away' : 'Neutral site', season: g.season, phase: g.phase, leaders})
+  });
+}
+// Schedule result cards: tap the card (outside its links) or its Graphic button
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-postgame]'), card = !btn && e.target.closest('article.game[data-game]');
+  if (btn) { openPostgame(btn.dataset.postgame, btn); return; }
+  if (card && !e.target.closest('a,button,summary,details')) openPostgame(card.dataset.game, card.querySelector('[data-postgame]'));
+});
+
+/* ---------- Schedule calendar view (#schedule?view=calendar): month grids for games, results and team dates ---------- */
+const calShort = n => { const w = n.replace(/\b(HS|High School|School|Academy|of)\b/gi, '').trim().split(/\s+/); return (/^(St\.?|Saint|DE|Wilm\.?|Del\.?)$/i.test(w[0]) && w[1] ? w[0] + ' ' + w[1] : w[0]) || n; };
+function scheduleCalendar(list, isUp, off, today) {
+  if (!list.length) return '';
+  const day = s => { const d = new Date(serial(s.date)); return {y: d.getFullYear(), m: d.getMonth(), d: d.getDate()}; };
+  const byDay = {};
+  for (const s of list) { const k = day(s); (byDay[`${k.y}-${k.m}-${k.d}`] ||= []).push(s); }
+  const matches = list.filter(s => s.kind === 'Match'); if (matches.length) list = list.filter(s => serial(s.date) >= Math.min(...matches.map(m => serial(m.date))) && serial(s.date) <= Math.max(...matches.map(m => serial(m.date))) + 864e5 * 14);
+  const ds = list.map(s => serial(s.date)), first = new Date(Math.min(...ds)), last = new Date(Math.max(...ds));
+  const td = new Date(today), months = [];
+  for (let y = first.getFullYear(), m = first.getMonth(); y < last.getFullYear() || (y === last.getFullYear() && m <= last.getMonth()); m === 11 ? (y++, m = 0) : m++) months.push([y, m]);
+  const chip = s => {
+    const g = s.game, team = s.kind !== 'Match', where = s.homeAway === 'H' ? 'vs' : s.homeAway === 'A' ? '@' : 'vs';
+    if (team) return `<span class="cal-ev team" title="${esc(s.opponent)}"><small><span class="cal-long">${esc(s.kind)}</span><span class="cal-short" aria-hidden="true">${esc(s.kind==='Scrimmage'?'Scrim':s.kind.split(' ')[0])}</span></small><b>${esc(calShort(s.opponent))}</b></span>`;
+    if (g && g.result) return `<button type="button" class="cal-ev res ${g.result === 'L' ? 'loss' : 'win'}" data-postgame="${esc(g.id)}" aria-haspopup="dialog" aria-label="${g.result === 'W' ? 'Win' : 'Loss'} ${esc(g.score)} ${where === '@' ? 'at' : 'vs'} ${esc(s.opponent)}, open postgame graphic">${crest(s.opponent)}<span class="cal-txt"><b>${g.result} ${esc(g.score)}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></button>`;
+    if (off(s)) return `<span class="cal-ev off" title="${esc(s.opponent)}: ${esc(s.status)}">${crest(s.opponent)}<span class="cal-txt"><b>${esc(s.status)}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></span>`;
+    return `<a class="cal-ev ${isUp(s) ? 'up' : 'pending'} ${s.homeAway === 'H' ? 'home' : ''}" href="${route('opponent', {name: s.opponent})}" aria-label="${where === '@' ? 'At' : 'Versus'} ${esc(s.opponent)}, ${esc(s.time || 'time TBD')}">${crest(s.opponent)}<span class="cal-txt"><b>${esc((s.time || 'TBD').replace(/\s*(AM|PM)$/i, m => m.trim()[0].toLowerCase()))}</b><small>${where} ${esc(calShort(s.opponent))}</small></span></a>`;
+  };
+  return months.map(([y, m]) => {
+    const lead = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate(), label = new Date(y, m, 1).toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
+    const inMonth = list.filter(s => { const k = day(s); return k.y === y && k.m === m; }), w = inMonth.filter(s => s.game?.result === 'W').length, l = inMonth.filter(s => s.game?.result === 'L').length;
+    const cells = Array.from({length: lead}, () => '<div class="cal-day blank" aria-hidden="true"></div>').join('') + Array.from({length: n}, (_, i) => {
+      const evs = byDay[`${y}-${m}-${i + 1}`] || [], isToday = td.getFullYear() === y && td.getMonth() === m && td.getDate() === i + 1;
+      return `<div class="cal-day${evs.length ? ' has' : ''}${isToday ? ' today' : ''}"><span class="cal-n">${i + 1}</span>${evs.map(chip).join('')}</div>`;
+    }).join('');
+    return `<h2 class="month">${label}<span>${inMonth.filter(s => s.kind === 'Match').length} matches${w + l ? ` · ${w}–${l}` : ''}</span></h2><div class="cal" role="group" aria-label="${label}"><div class="cal-head" aria-hidden="true">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<span><b>${d}</b><i>${d[0]}</i></span>`).join('')}</div><div class="cal-grid">${cells}</div></div>`;
+  }).join('') + '<p class="cal-key"><span class="k win">W</span><span class="k loss">L</span> Tap a result for the postgame graphic · Tap an upcoming game for the head-to-head</p>';
+}

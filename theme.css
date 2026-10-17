@@ -636,30 +636,6 @@ html:has(.leader-modal[open]){overflow:hidden}
 .leader-modal[open]{animation:lm-in .22s ease-out}
 @keyframes lm-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.leader-modal[open]{animation:none}}
-/* The graphic borrows from the team's Instagram: kelly green + grain, a white tab on the top edge,
-   hollow wide-tracked wordmark, giant white number with an ink outline and hard drop shadow,
-   Yellowtail script slashed across it, condensed game tag, and a torn-paper edge into the stats. */
-.lm-post{position:relative;isolation:isolate;overflow:hidden;padding:30px 22px 34px;background:var(--green);color:#fff}
-.lm-post:before{content:'';position:absolute;inset:0;z-index:-1;background:url('paper-grain.svg');opacity:.22;mix-blend-mode:overlay}
-.lm-post:after{content:'';position:absolute;z-index:-1;left:0;right:0;top:44%;height:58px;background:var(--green-deep);border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:skewY(-4deg)}
-.lm-tab{position:absolute;top:0;left:50%;width:84px;height:10px;margin-left:-42px;background:#fff}
-.lm-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border:0;border-radius:50%;background:#0000003d;color:#fff;font:400 24px/1 var(--body);cursor:pointer;z-index:2}
-.lm-close:hover{background:#00000066}
-.lm-brand{margin:0;font:400 13px/1 var(--display);letter-spacing:.42em;text-transform:uppercase;color:transparent;-webkit-text-stroke:1px #ffffffd9}
-.lm-hero{position:relative;margin:14px 0 6px;text-align:center}
-.lm-num{display:block;font:400 168px/.86 var(--display);color:#fff;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:7px 7px 0 var(--ink);letter-spacing:.01em}
-.lm-script{position:absolute;right:4%;bottom:-6px;font:400 58px/1 var(--script);color:#fff;text-shadow:2px 3px 0 var(--ink);transform:rotate(-9deg);white-space:nowrap}
-.lm-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:22px;padding-right:58px}
-.lm-kicker{display:block;font:700 10px var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--mint)}
-.lm-name{margin:4px 0 0;font:400 40px/.88 var(--display);text-transform:uppercase;color:#fff;overflow-wrap:anywhere}
-.lm-name small{display:block;font:400 18px/1 var(--display);letter-spacing:.06em;color:var(--mint);margin-bottom:2px}
-.lm-meta{display:block;margin-top:7px;font:700 10px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--mint)}
-.lm-tag{flex:0 0 auto;max-width:44%;text-align:right;font:400 13px/1.15 var(--display);text-transform:uppercase;letter-spacing:.04em;color:#fff}
-.lm-tag b{display:block;font-weight:400;font-size:20px;color:#fff}
-.lm-tag span{display:block;color:var(--mint)}
-.lm-logo{position:absolute;right:16px;bottom:16px;width:44px;height:auto;opacity:.95}
-.lm-body{position:relative;margin-top:-12px;padding:26px 18px 18px;background:var(--card);clip-path:polygon(0 0,3.8% 10px,7.7% 4px,11.5% 6px,15.4% 2px,19.2% 11px,23.1% 0,26.9% 7px,30.8% 4px,34.6% 3px,38.5% 2px,42.3% 8px,46.2% 0,50% 4px,53.8% 4px,57.7% 9px,61.5% 2px,65.4% 5px,69.2% 0,73.1% 10px,76.9% 4px,80.8% 6px,84.6% 2px,88.5% 11px,92.3% 0,96.2% 7px,100% 4px,100% 100%,0 100%)}
-@media(max-width:360px){.lm-post{padding:28px 16px 30px}.lm-num{font-size:138px}.lm-script{font-size:48px}.lm-name{font-size:32px}.lm-foot{padding-right:50px}.lm-logo{width:38px}.lm-body{padding:24px 14px 14px}}
 /* Match-leader dialog: stat strip + actions under the torn edge */
 .lm-who{display:block;margin:4px 0 6px;font:700 13px var(--body)}
 .lm-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
@@ -673,8 +649,78 @@ html:has(.leader-modal[open]){overflow:hidden}
 .lm-actions a{font:700 14px var(--body);color:var(--green);text-decoration:none}
 .lm-actions a:hover{text-decoration:underline}
 .lm-actions button{margin-left:auto;padding:9px 16px;border:1px solid var(--line);border-radius:999px;background:var(--card);font:600 13px var(--body);color:var(--ink-2);cursor:pointer}
-.lm-brand{padding-right:46px}
-.lm-who-block{min-width:0}
-.lm-name{overflow-wrap:break-word}
-.lm-name.is-tie{font-size:30px;line-height:.92}
-@media(max-width:360px){.lm-brand{letter-spacing:.3em;font-size:12px}.lm-name.is-tie{font-size:26px}}
+/* Match-leader dialog: the canvas graphic (1080x1350, Instagram portrait) shown at dialog width */
+.lm-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.lm-figure{position:relative;aspect-ratio:4/5;background:var(--green) linear-gradient(180deg,var(--ink) 0 11.1%,transparent 11.1%)}
+.lm-img{display:block;width:100%;height:100%}
+.lm-body{padding:14px 16px 16px}
+.lm-actions{margin-top:0}
+.lm-body .lm-strip+.lm-actions{margin-top:16px}
+.lm-actions .lm-save{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:999px;background:var(--green);color:#fff;font:700 14px var(--body);cursor:pointer}
+.lm-actions .lm-save svg{width:18px;height:18px}
+.lm-actions .lm-save:hover{background:var(--green-deep)}
+.lm-actions .lm-save:disabled{opacity:.55;cursor:progress}
+.lm-actions .lm-done{margin-left:auto}
+.lm-actions{gap:10px 16px}
+.lm-actions .lm-save{flex:1 0 100%;justify-content:center;padding:13px 18px;font-size:15px}
+.lm-actions .lm-done{padding:8px 14px}
+/* Schedule: played results open the postgame graphic */
+.game.has-graphic{cursor:pointer;transition:border-color .15s}
+.game.has-graphic:hover{border-color:#9bc7a8}
+.game .res .pg-btn{all:unset;cursor:pointer;font:600 12px var(--body);color:var(--green);padding:2px 0}
+.game .res .pg-btn:hover{text-decoration:underline}
+.game .res .pg-btn:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
+/* Schedule: List / Calendar switch, first item in the toolbar actions */
+.view-seg{display:inline-flex;padding:3px;border-radius:999px;background:#fff;border:1px solid var(--line)}
+.view-seg a{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;font:600 12px var(--body);color:var(--ink-2);text-decoration:none}
+.view-seg a.on{background:var(--ink);color:#fff}
+/* Calendar view: Sun–Sat month grids; results open the postgame graphic */
+.cal{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.cal-head{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--ink);color:#c9d2cc}
+.cal-head span{padding:9px 0;text-align:center;font:700 11px var(--body);letter-spacing:.1em;text-transform:uppercase}
+.cal-head i{display:none;font-style:normal}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.cal-day{min-height:104px;min-width:0;padding:6px;border-top:1px solid var(--line);border-left:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.cal-day:nth-child(7n+1){border-left:0}
+.cal-day.blank{background:#f8faf7}
+.cal-n{font:600 12px var(--body);color:var(--muted)}
+.cal-day.today .cal-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff}
+.cal-day.today{box-shadow:inset 0 0 0 2px var(--green)}
+.cal-ev{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:6px;min-width:0;padding:5px 6px;border-radius:9px;background:var(--light);color:var(--ink);text-decoration:none;cursor:pointer;font:600 12px/1.15 var(--body)}
+.cal-ev .logo{flex:0 0 24px;width:24px;height:24px;border-radius:6px;overflow:hidden;display:grid;place-items:center;background:#fff;font-size:9px}
+.cal-ev .logo img{width:100%;height:100%;object-fit:contain}
+.cal-txt{display:flex;flex-direction:column;min-width:0}
+.cal-txt b{font:400 15px/1 var(--display);letter-spacing:.02em;white-space:nowrap}
+.cal-txt small{font:600 11px/1.2 var(--body);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.res.win{background:var(--green);color:#fff}
+.cal-ev.res.win small{color:var(--mint)}
+.cal-ev.res.loss{background:var(--ink);color:#fff}
+.cal-ev.res.loss small{color:#c9d2cc}
+.cal-ev.up{background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
+.cal-ev.up.home{box-shadow:inset 0 0 0 2px var(--green)}
+.cal-ev.off{background:#f3ece3;color:#7a5a2c;cursor:default}
+.cal-ev.team{flex-direction:column;align-items:flex-start;gap:1px;background:#eef0ec;cursor:default}
+.cal-ev.team small{font:700 9px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cal-ev.team b{font:600 11px/1.2 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cal-ev:hover{filter:brightness(1.06)}
+.cal-ev:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.cal-key{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:14px 0;font:500 12px var(--body);color:var(--muted)}
+.cal-key .k{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;font:400 12px var(--display);color:#fff;background:var(--green)}
+.cal-key .k.loss{background:var(--ink);margin-right:4px}
+/* Phones: compact cells, logo + result only */
+@media(max-width:700px){
+  .cal-head b{display:none}.cal-head i{display:inline}
+  .cal-day{min-height:62px;padding:3px;gap:3px;align-items:center}
+  .cal-n{align-self:flex-start;font-size:11px;padding-left:2px}
+  .cal-day.today .cal-n{width:18px;height:18px}
+  .cal-ev{flex-direction:column;justify-content:center;gap:2px;width:100%;padding:3px 1px;border-radius:7px}
+  .cal-ev .logo{flex-basis:20px;width:20px;height:20px;border-radius:5px}
+  .cal-txt{align-items:center}
+  .cal-txt b{font-size:11px}
+  .cal-txt small{display:none}
+  .cal-ev.team{align-items:center}
+  .cal-ev.team b{display:none}
+  .cal-ev.team small{font-size:8px;letter-spacing:.02em;text-align:center;white-space:normal}
+}
+.cal-ev .cal-short{display:none}
+@media(max-width:700px){.cal-ev.team .cal-long{display:none}.cal-ev.team .cal-short{display:inline}.cal-ev.team{padding:4px 1px}}
