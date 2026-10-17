@@ -624,3 +624,8 @@ body .player-honors h2{font:400 34px/1 var(--display);text-transform:uppercase;l
 .box-table td.is-lead span{background:#0f6b3a1a;color:var(--green)}
 .box-table td.is-sorted[style]{background-image:linear-gradient(var(--green),var(--green));background-repeat:no-repeat;background-size:calc(var(--share) * .7) 3px;background-position:50% calc(100% - 5px)}
 @media(max-width:600px){.box-leaders{gap:6px}.box-leader{padding:11px 10px 12px;border-radius:12px}.box-leader strong{font-size:42px}.box-leader b{font-size:13px}.box-leader .bl-cat{font-size:9px}}
+/* Box score: every number is a sort button too */
+.box-table .bt-cell{all:unset;box-sizing:border-box;display:block;width:100%;padding:0 2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.box-table .bt-cell:hover span{background:#0f6b3a14}
+.box-table .bt-cell:focus-visible{outline:2px solid var(--green);outline-offset:-2px;border-radius:8px}
+.box-table td:has(.bt-cell){padding-left:0;padding-right:0}
