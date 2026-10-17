@@ -723,12 +723,12 @@ html:has(.leader-modal[open]){overflow:hidden}
 .cal-ev .cal-short{display:none}
 @media(max-width:700px){.cal-ev.team .cal-long{display:none}.cal-ev.team .cal-short{display:inline}.cal-ev.team{padding:4px 1px}}
 /* Awards page: championship banners hanging from a rafter */
-.rafters{position:relative;display:flex;justify-content:center;gap:clamp(8px,3vw,44px);padding:16px clamp(2px,2vw,28px) 4px;margin:4px 0 20px;--sway:0deg}
+.rafters{position:relative;display:flex;justify-content:center;gap:clamp(8px,3vw,44px);padding:16px clamp(2px,2vw,28px) 4px;margin:4px 0 20px}
 .rafters:before{content:'';position:absolute;left:0;right:0;top:6px;height:14px;border-radius:7px;background:linear-gradient(180deg,#4a534e,#141917 70%);box-shadow:0 4px 8px #0003}
 .rafter-banner{margin:0;flex:0 1 230px;min-width:0;transform-origin:50% 0}
-.rafter-banner img{display:block;width:100%;height:auto;transform-origin:50% 0;transform:rotate(calc(var(--sway) * (1 + var(--k) * .18)));transition:transform .9s cubic-bezier(.25,1.7,.45,1);filter:drop-shadow(0 12px 14px #00000038)}
+.rafter-banner img{display:block;width:100%;height:auto;transform-origin:50% 0;will-change:transform;filter:drop-shadow(0 12px 14px #00000038)}
 .rafters.will-drop:not(.is-in) .rafter-banner{opacity:0;transform:translateY(-36px)}
-.rafters.will-drop.is-in .rafter-banner{animation:banner-drop 1.5s cubic-bezier(.22,.8,.3,1) both;animation-delay:calc(var(--k) * .2s)}
-@keyframes banner-drop{0%{opacity:0;transform:translateY(-44px) rotate(-8deg)}28%{opacity:1;transform:translateY(0) rotate(6deg)}46%{transform:rotate(-3.5deg)}64%{transform:rotate(1.8deg)}82%{transform:rotate(-.7deg)}100%{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.rafters .rafter-banner{animation:none!important;opacity:1!important;transform:none!important}.rafter-banner img{transition:none;transform:none}}
+.rafters.will-drop.is-in .rafter-banner{animation:banner-drop var(--dur,1.5s) cubic-bezier(.22,.8,.3,1) both;animation-delay:calc(var(--k) * .23s)}
+@keyframes banner-drop{0%{opacity:0;transform:translateY(-44px) rotate(calc(-8deg * var(--amp,1)))}28%{opacity:1;transform:translateY(0) rotate(calc(6deg * var(--amp,1)))}46%{transform:rotate(calc(-3.5deg * var(--amp,1)))}64%{transform:rotate(calc(1.8deg * var(--amp,1)))}82%{transform:rotate(calc(-.7deg * var(--amp,1)))}100%{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.rafters .rafter-banner{animation:none!important;opacity:1!important;transform:none!important}.rafter-banner img{transform:none!important}}
 @media(max-width:600px){.rafters{padding-top:12px}.rafters:before{height:10px;top:5px}}

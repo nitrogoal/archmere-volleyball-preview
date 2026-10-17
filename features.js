@@ -120,14 +120,19 @@ function playerCollege(name) {
 }
 
 /* ---------- Awards page: state titles, every honor by season, then college volleyball ---------- */
+// State-title banners hanging from a rafter (Awards page and home); animated by the Rafter banners block below
+function rafterBanners() {
+  const art = (TEAM.stateTitles || []).filter(t => t.banner).sort((a, b) => a.year - b.year);
+  return art.length ? `<div class="rafters" role="list" aria-label="State championship banners">${art.map((t, k) => `<figure class="rafter-banner" role="listitem" style="--k:${k};--amp:${[1, -.8, 1.25][k % 3]};--dur:${[1.5, 1.9, 1.3][k % 3]}s"><img src="${esc(t.banner)}" alt="${esc(t.year)} DIAA girls volleyball state champions banner" width="600" height="835" decoding="async"></figure>`).join('')}</div>` : '';
+}
+const homeBanners = () => { const r = rafterBanners(); return r ? `<section class="block home-banners"><div class="sec-head"><h2>State champions</h2><a href="#awards">Awards →</a></div>${r}</section>` : ''; };
 function stateTitles() {
   const titles = TEAM.stateTitles || []; if (!titles.length) return '';
   const finals = (TEAM.stateFinals || []).map(id => D.games.find(g => g.id === id)).filter(Boolean);
   const row = t => { const g = t.game && D.games.find(x => x.id === t.game), href = g ? route('game', {id: g.id}) : t.url, ext = g ? '' : ' target="_blank" rel="noopener noreferrer"';
     return `<a class="row ms-row" href="${esc(href)}"${ext}><span class="ms-left"><b>${esc(t.year)}</b></span><span class="what"><b>DIAA State Champions</b><small>${esc(t.detail || '')}</small></span><span class="ms-cat">${g ? 'Final' : 'DIAA ↗'}</span></a>`; };
   const finalsRow = finals.length ? `<div class="row ms-row st-finals"><span class="ms-left"><b>${finals.length}</b><span>finals</span></span><span class="what"><b>State runner-up</b><small>${finals.map(g => `<a href="${route('game', {id: g.id})}">${g.season}</a>`).join(' · ')}</small></span></div>` : '';
-  const art = titles.filter(t => t.banner).sort((a, b) => a.year - b.year);
-  const rafters = art.length ? `<div class="rafters" role="list" aria-label="State championship banners">${art.map((t, k) => `<figure class="rafter-banner" role="listitem" style="--k:${k}"><img src="${esc(t.banner)}" alt="${esc(t.year)} DIAA girls volleyball state champions banner" width="600" height="835" decoding="async"></figure>`).join('')}</div>` : '';
+  const rafters = rafterBanners();
   return `<section class="block state-titles"><div class="sec-head"><h2>State champions</h2></div>${rafters}<div class="list">${titles.map(row).join('')}${finalsRow}</div></section>`;
 }
 const AWARD_TYPES = {'All-State': a => /all-state/i.test(a.award), 'All-Conference': a => /all-conference/i.test(a.award), 'Other honors': a => !/all-state|all-conference/i.test(a.award)};
@@ -474,11 +479,10 @@ function scheduleCalendar(list, isUp, off, today) {
   }).join('') + '<p class="cal-key"><span class="k win">W</span><span class="k loss">L</span> Tap a result for the postgame graphic · Tap an upcoming game for the head-to-head</p>';
 }
 
-/* ---------- Rafter banners: drop and swing in when scrolled into view, then sway with scroll speed ---------- */
+/* ---------- Rafter banners: drop and swing in when scrolled into view; each then swings on its own ---------- */
 (() => {
   const still = matchMedia('(prefers-reduced-motion: reduce)');
-  let live = new Set(), lastY = scrollY, lastT = performance.now(), raf = 0, rest = 0;
-  const show = el => { el.classList.add('is-in'); live.add(el); };
+  const live = new Set(), show = el => { if (!el.classList.contains('is-in')) setTimeout(() => el.classList.add('settled'), 3400); el.classList.add('is-in'); live.add(el); };
   // In view = at least a quarter of the rafter row on screen. Checked directly too: on first load the observer's
   // initial report can arrive before layout and never repeat.
   const inView = el => { const b = el.getBoundingClientRect(), h = Math.max(1, b.height); return b.bottom - h * .25 > 0 && b.top + h * .25 < innerHeight; };
@@ -486,17 +490,37 @@ function scheduleCalendar(list, isUp, off, today) {
     for (const e of entries) e.isIntersecting ? show(e.target) : live.delete(e.target);
   }, {threshold: 0.25});
   const check = () => document.querySelectorAll('.rafters.will-drop:not(.is-in)').forEach(el => inView(el) && show(el));
-  const sway = () => {
-    raf = 0; const now = performance.now(), dt = Math.max(16, now - lastT), v = (scrollY - lastY) / dt; lastY = scrollY; lastT = now;
-    const deg = Math.max(-7, Math.min(7, v * 9));
-    for (const el of live) el.style.setProperty('--sway', deg.toFixed(2) + 'deg');
-    clearTimeout(rest); rest = setTimeout(() => { for (const el of live) el.style.setProperty('--sway', '0deg'); }, 120);
+  // One damped pendulum per banner; different stiffness, damping and weight so they never swing in step
+  const FEEL = [{k: 34, c: 2.4, g: 1}, {k: 23, c: 1.8, g: 1.35}, {k: 46, c: 3.1, g: .8}];
+  const bodies = new Map();
+  let frame = 0, last = 0;
+  const body = img => { if (!bodies.has(img)) bodies.set(img, {a: 0, v: 0, ...FEEL[(+img.closest('.rafter-banner')?.style.getPropertyValue('--k') || 0) % FEEL.length]}); return bodies.get(img); };
+  const step = t => {
+    const dt = Math.min(.033, Math.max(.008, (t - last) / 1000)); last = t; let moving = false;
+    for (const [img, b] of bodies) {
+      if (!img.isConnected) { bodies.delete(img); continue; }
+      b.v += (-b.k * b.a - b.c * b.v) * dt; b.a = Math.max(-10, Math.min(10, b.a + b.v * dt));
+      if (Math.abs(b.a) > .02 || Math.abs(b.v) > .05) moving = true;
+      img.style.transform = `rotate(${b.a.toFixed(3)}deg)`;
+    }
+    frame = moving ? requestAnimationFrame(step) : 0;
   };
-  addEventListener('scroll', () => { check(); if (live.size && !still.matches && !raf) raf = requestAnimationFrame(sway); }, {passive: true});
+  const kick = (img, push) => { const b = body(img); b.v += push * b.g * (.7 + Math.random() * .6); if (!frame) { last = performance.now(); frame = requestAnimationFrame(step); } };
+  const imgs = () => [...live].flatMap(r => r.classList.contains('settled') ? [...r.querySelectorAll('img')] : []);
+  let lastY = scrollY, lastT = performance.now();
+  addEventListener('scroll', () => {
+    check(); const now = performance.now(), v = (scrollY - lastY) / Math.max(16, now - lastT); lastY = scrollY; lastT = now;
+    if (still.matches || !live.size) return;
+    for (const img of imgs()) kick(img, Math.max(-60, Math.min(60, v * 55)));
+  }, {passive: true});
+  // A light breeze: now and then one banner gets a small nudge
+  setInterval(() => { if (still.matches || document.hidden) return; const list = imgs(); if (list.length && Math.random() < .5) kick(list[Math.floor(Math.random() * list.length)], (Math.random() < .5 ? -1 : 1) * (6 + Math.random() * 8)); }, 2600);
   const arm = () => document.querySelectorAll('.rafters:not(.armed)').forEach(r => {
     r.classList.add('armed');
-    if (!io || still.matches) { r.classList.add('is-in'); return; }
+    if (!io || still.matches) { r.classList.add('is-in', 'settled'); return; }
     r.classList.add('will-drop'); io.observe(r); requestAnimationFrame(() => requestAnimationFrame(check)); setTimeout(check, 400);
+    // Physics takes over once the last banner has finished its drop
+    r.addEventListener('animationend', () => { if ([...r.querySelectorAll('.rafter-banner')].every(fb => !fb.getAnimations().some(an => an.playState === 'running'))) r.classList.add('settled'); });
   });
   new MutationObserver(arm).observe(document.getElementById('main'), {childList: true, subtree: true});
   arm();
