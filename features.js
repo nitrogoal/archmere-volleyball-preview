@@ -11,7 +11,8 @@ fetch('themes.json').then(r => r.ok ? r.json() : []).then(list => {
 }).catch(() => {});
 // Each theme night gets its own look (see theme.css .theme-*)
 const themeClass = t => 'theme-' + t.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-const themeTag = (t, extra = '') => t ? `<span class="theme-pill ${themeClass(t)} ${extra}">${t === 'USA' ? '<i aria-hidden="true">★</i>' : ''}${esc(t)} night</span>` : '';
+// Theme nights show as stickers (see Theme-night stickers below); extra = context class
+const themeTag = (t, extra = '') => themeSticker(t, extra);
 const themePill = s => themeTag(themeFor(s));
 
 /* ---------- Calendar ---------- */
@@ -683,7 +684,7 @@ function openGameday(date, opponent, from) {
     from, title: 'Game day: ' + title, alt: `Game-day graphic: Archmere ${s.homeAway === 'A' ? 'at' : 'vs'} ${opponent}, ${when}${time ? ' ' + time : ''}`,
     file: `archmere-gameday-${fileSlug(opponent)}-${s.date.replace(/\//g, '-')}.png`,
     links: `<a href="${route('opponent', {name: opponent})}">Head-to-head <span aria-hidden="true">→</span></a>`,
-    render: () => gamedayGraphic({days, opponent, oppLogo: logo, away: s.homeAway === 'A', neutral: s.homeAway === 'N', date: when, time, place: s.location || '', theme: themeFor(s), record, season: s.season})
+    render: () => gamedayGraphic({days, opponent, oppLogo: logo, away: s.homeAway === 'A', neutral: s.homeAway === 'N', date: when, time, place: s.location || '', theme: themeFor(s), senior: isSenior(s), record, season: s.season})
   });
 }
 document.addEventListener('click', e => {
@@ -828,10 +829,16 @@ async function gamedayTpl(d) {
   if (d.days > 0) tpTag(x, d.days === 1 ? '1 DAY TO GO' : `${d.days} DAYS TO GO`, TP.cx - 150, 472, 30, -.05);
   if (ours) { const w = 150, h = w * ours.height / ours.width; x.drawImage(ours, 820, 380, w, h); }
   // Centre: the matchup
-  const ty = 690, ts = 200; lgTile(x, ours, TP.cx - 170, ty, ts); lgTile(x, theirs, TP.cx + 170, ty, ts);
+  const tagged = d.theme || d.senior, ty = tagged ? 640 : 690, ts = tagged ? 180 : 200, paper = await tpPaper();
+  for (const [img, cx, rot] of [[ours, TP.cx - 170, -.04], [theirs, TP.cx + 170, .035]]) {
+    tpChip(x, paper, cx, ty, ts, ts, rot, d.opponent + cx, null);
+    if (img) { const pad = ts * .16, w = ts - pad * 2, k = Math.min(w / img.width, w / img.height); x.save(); x.translate(cx, ty); x.rotate(rot); x.globalCompositeOperation = 'multiply'; x.drawImage(img, -img.width * k / 2, -img.height * k / 2, img.width * k, img.height * k); x.restore(); }
+  }
   x.textAlign = 'center'; x.font = '400 64px Anton'; x.fillStyle = LG.mint; x.fillText(d.away ? '@' : 'VS', TP.cx, ty + 22); x.textAlign = 'left';
-  if (d.theme) { const s = `THEME: ${d.theme.toUpperCase()} NIGHT`; x.font = '800 26px Inter'; x.fillStyle = '#fff'; lgTracked(x, s, TP.cx, 880, 5, 'center'); }
-  else { x.font = '800 22px Inter'; x.fillStyle = 'rgba(214,239,220,.75)'; lgTracked(x, d.away ? 'ON THE ROAD' : 'AT ARCHMERE', TP.cx, 880, 6, 'center'); }
+  // Theme and Senior Night stickers, side by side when a game has both
+  const stks = (await Promise.all([d.theme && stickerSrc(d.theme), d.senior && stickerSrc('Senior Night')].filter(Boolean).map(lgLoadImg))).filter(Boolean);
+  stks.forEach((stk, i) => { const sx = TP.cx + (stks.length > 1 ? (i ? 92 : -92) : 0); x.save(); x.translate(sx, 895); x.rotate(i ? .06 : -.07); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 18; x.shadowOffsetY = 8; x.drawImage(stk, -80, -80, 160, 160); x.restore(); });
+  if (!stks.length) { x.font = '800 22px Inter'; x.fillStyle = 'rgba(214,239,220,.75)'; lgTracked(x, d.away ? 'ON THE ROAD' : 'AT ARCHMERE', TP.cx, 880, 6, 'center'); }
   // Opponent, the green strip, then when and where
   const opp = d.opponent.toUpperCase(); tpPrint(x, opp, TP.cx + 30, 1092, tpSize(x, opp, TP.w - 110, 92), TP.ink);
   tpTag(x, d.away ? '@' : 'VS', TP.cx - Math.min(TP.w, x.measureText(opp).width) / 2 - 30, 1058, 34, -.08);
@@ -846,11 +853,11 @@ async function finalTpl(d) {
   const t = await tplCanvas('final'); if (!t) return null; const {c, x} = t;
   tpHeader(x, 178);
   const head = d.win ? 'AUKS WIN' : 'FINAL'; tpPrint(x, head, TP.cx, 430, tpSize(x, head, TP.w, 230), TP.ink);
-  if (d.phase === 'Postseason') tpTag(x, 'POSTSEASON', TP.cx + 260, 470, 28, -.06);
+  tpTag(x, d.phase === 'Postseason' ? 'POSTSEASON' : 'REGULAR SEASON', TP.cx - 170, 474, 26, -.05);
+  const paper = await tpPaper();
   // Centre: score and sets
-  const score = d.score.replace('-', '–'); x.textAlign = 'left';
-  x.font = '400 300px Anton'; const sw = x.measureText(score).width; lgBig(x, score, TP.cx - sw / 2, 800, 300, d.loss ? LG_THEMES.loss : LG_THEMES.win);
-  if (d.sets.length) tpTiles(x, d.sets.map(([a, b], k) => [`${a}–${b}`, `SET ${k + 1}`]), 845, 105, k => d.sets[k][0] > d.sets[k][1]);
+  tpCutout(x, paper, d.score.replace('-', '–'), TP.cx, 800, 300, d.opponent + d.date);
+  if (d.sets.length) tpChips(x, paper, d.sets.map(([a, b], k) => [`${a}–${b}`, `SET ${k + 1}`]), 900, 96, k => d.sets[k][0] > d.sets[k][1] ? 'white' : 'green', d.opponent + d.date);
   // Opponent, strip, top performers
   const opp = `${d.away ? '@' : 'VS'} ${d.opponent}`.toUpperCase(); tpPrint(x, opp, TP.cx, 1092, tpSize(x, opp, TP.w, 92), TP.ink);
   x.font = '800 18px Inter'; x.fillStyle = '#fff'; lgTracked(x, `${d.date} · ${d.place}${d.record ? ' · RECORD ' + d.record : ''}`.toUpperCase(), TP.cx, 1149, 4, 'center');
@@ -874,11 +881,11 @@ async function playerTpl(d) {
   if (d.first) tpPrint(x, d.first.toUpperCase(), TP.cx, 228, tpSize(x, d.first.toUpperCase(), TP.w, 56), TP.green);
   const last = d.last.toUpperCase(); tpPrint(x, last, TP.cx, d.first ? 335 : 320, tpSize(x, last, TP.w, d.first ? 112 : 150), TP.ink);
   // Centre: the big number (jersey / initials, or the stat for a match leader), a line under it, then tiles
-  x.font = `400 ${d.bigSize || 330}px Anton`; const bw = x.measureText(d.big).width;
-  lgBig(x, d.big, TP.cx - bw / 2 - (d.script ? 70 : 0), 690, d.bigSize || 330);
+  const paper = await tpPaper(); x.font = `400 ${d.bigSize || 330}px Anton`; const bw = x.measureText(d.big).width;
+  tpCutout(x, paper, d.big, TP.cx - (d.script ? 70 : 0), 690, d.bigSize || 330, d.last + d.big);
   if (d.script) { lgFit(x, d.script, 340, 110, s => `400 ${s}px Yellowtail`); x.save(); x.translate(TP.cx + bw / 2 - 110, 670); x.rotate(-.14); x.fillStyle = LG.ink; x.fillText(d.script, 5, 7); x.fillStyle = '#fff'; x.fillText(d.script, 0, 0); x.restore(); }
   x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, d.sub.toUpperCase(), TP.cx, 752, 5, 'center');
-  if (d.tiles && d.tiles.length) { tpTiles(x, d.tiles, 800, 120, k => k === d.hi); x.font = '800 15px Inter'; x.fillStyle = 'rgba(214,239,220,.7)'; lgTracked(x, d.tilesLabel, TP.cx, 950, 6, 'center'); }
+  if (d.tiles && d.tiles.length) { tpChips(x, paper, d.tiles, 862, 108, k => k === d.hi ? 'green' : 'white', d.last); x.font = '800 15px Inter'; x.fillStyle = 'rgba(214,239,220,.7)'; lgTracked(x, d.tilesLabel, TP.cx, 952, 6, 'center'); }
   // Bottom paper: honors or the game line
   let y = 1040;
   if (d.lines.length) {
@@ -892,4 +899,93 @@ async function playerTpl(d) {
   } else tpPrint(x, 'ARCHMERE VOLLEYBALL', TP.cx, 1150, tpSize(x, 'ARCHMERE VOLLEYBALL', TP.w, 80), TP.ink);
   tpPrint(x, 'CLAYMONT, DE  ·  AUKSVB.COM', TP.cx, 1306, 16, TP.green, {font: 'Inter', weight: 800, spacing: 3, distress: false, alpha: .9});
   return c;
+}
+
+/* ---------- Theme-night stickers: Astra art where we have it, otherwise drawn here in the same die-cut style ---------- */
+const STICKER_ART = {Blackout: 'brand/sticker-blackout-v1.webp', Neon: 'brand/sticker-neon-v1.webp', USA: 'brand/sticker-usa-v1.webp', 'Senior Night': 'brand/sticker-senior-v1.webp'};
+// Code-drawn stickers: [two text lines, interior colour, ink colour, pattern]
+const STICKER_STYLE = {
+  Camo: [['CAMO', 'NIGHT'], '#4b5320', '#fff', 'camo'], Hawaiian: [['HAWAIIAN', 'NIGHT'], '#0b8f8f', '#ffd23f', 'flowers'],
+  Orange: [['ORANGE', 'OUT'], '#f26b1d', '#fff', ''], Jersey: [['JERSEY', 'NIGHT'], '#0f6b3a', '#fff', 'stripes'],
+  'Country Club': [['COUNTRY', 'CLUB'], '#f4efe1', '#0f6b3a', 'argyle'], 'Green Out': [['GREEN', 'OUT'], '#0f6b3a', '#fff', ''],
+  'Dig Pink': [['DIG', 'PINK'], '#e83e8c', '#fff', '']
+};
+let stickerDrawn = {};
+function drawSticker(theme) {
+  const [lines, bg, ink, pat] = STICKER_STYLE[theme] || [[theme.toUpperCase(), 'NIGHT'], '#0f6b3a', '#fff', ''];
+  const c = document.createElement('canvas'); c.width = c.height = 320; const x = c.getContext('2d'), R = 156, C = 160, r = lgRand(theme);
+  x.beginPath(); x.arc(C, C, R, 0, 7); x.fillStyle = '#fff'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#1b1f1d'; x.stroke();
+  x.save(); x.beginPath(); x.arc(C, C, R - 15, 0, 7); x.clip(); x.fillStyle = bg; x.fillRect(0, 0, 320, 320);
+  if (pat === 'camo') for (let i = 0; i < 26; i++) { x.fillStyle = ['#6b7a3a', '#2f3518', '#8a7f55'][i % 3]; x.beginPath(); x.ellipse(r() * 320, r() * 320, 18 + r() * 30, 10 + r() * 18, r() * 3, 0, 7); x.fill(); }
+  if (pat === 'flowers') for (let i = 0; i < 9; i++) { const fx = r() * 320, fy = r() * 320, s = 10 + r() * 10; x.fillStyle = 'rgba(255,255,255,.22)'; for (let k = 0; k < 5; k++) { x.beginPath(); x.ellipse(fx + Math.cos(k * 1.26) * s, fy + Math.sin(k * 1.26) * s, s * .8, s * .45, k * 1.26, 0, 7); x.fill(); } }
+  if (pat === 'stripes') { x.fillStyle = 'rgba(255,255,255,.12)'; for (let i = -320; i < 640; i += 46) { x.save(); x.translate(i, 0); x.rotate(.5); x.fillRect(0, -100, 16, 600); x.restore(); } }
+  if (pat === 'argyle') { x.fillStyle = 'rgba(15,107,58,.10)'; for (let yy = 0; yy < 320; yy += 70) for (let xx = (yy / 70 % 2) * 35; xx < 320; xx += 70) { x.beginPath(); x.moveTo(xx, yy - 35); x.lineTo(xx + 35, yy); x.lineTo(xx, yy + 35); x.lineTo(xx - 35, yy); x.fill(); } }
+  // Print grain inside only
+  for (let i = 0; i < 900; i++) { x.fillStyle = r() < .5 ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)'; x.fillRect(r() * 320, r() * 320, 2, 2); }
+  x.restore();
+  lgBall(x, C, 86, 34, ink, 5);
+  x.fillStyle = ink; x.textAlign = 'center';
+  lines.forEach((t, i) => { const s = tpSize(x, t, i ? 190 : 210, i ? 70 : 78); x.font = `400 ${s}px Anton`; x.fillText(t, C, i ? 262 : 186); });
+  return c.toDataURL('image/png');
+}
+const stickerSrc = t => STICKER_ART[t] || (stickerDrawn[t] ||= drawSticker(t));
+// Redraw code stickers once the display font has loaded, so their lettering is Anton
+document.fonts?.load('400 60px Anton').then(() => { stickerDrawn = {}; if (D) render(false); }).catch(() => {});
+const themeSticker = (t, cls = '') => t ? `<img class="theme-sticker ${cls}" src="${stickerSrc(t)}" alt="${esc(t)} night" title="${esc(t)} night" width="64" height="64" decoding="async">` : '';
+
+/* ---------- White paper pieces for the template graphics: torn chips and cut-out numerals ----------
+   The paper is the template's own texture, desaturated and lifted to white, so it matches the collage. */
+let tpPaperC;
+async function tpPaper() {
+  if (tpPaperC) return tpPaperC;
+  const src = await lgLoadImg(TPL.gameday); if (!src) return null;
+  const c = document.createElement('canvas'); c.width = 760; c.height = 360; const g = c.getContext('2d');
+  g.filter = 'grayscale(1) brightness(1.13) contrast(1.08)'; g.drawImage(src, 180, 130, 760, 360, 0, 0, 760, 360);   // top paper panel
+  return tpPaperC = c;
+}
+// Torn chip: evenly spaced tear on every side (fixed by seed), square corners, paper fully covering the shape
+function tpChip(x, paper, cx, cy, w, h, rot, seed, tint) {
+  const r = lgRand(seed), step = 9, amp = 2.6, pts = [];
+  const side = (ax, ay, bx, by, nx, ny) => { const n = Math.max(2, Math.round(Math.hypot(bx - ax, by - ay) / step)); for (let i = 0; i < n; i++) { const t = i / n, j = i ? (r() - .5) * 2 * amp : 0; pts.push([ax + (bx - ax) * t + nx * j, ay + (by - ay) * t + ny * j]); } };
+  side(-w / 2, -h / 2, w / 2, -h / 2, 0, 1); side(w / 2, -h / 2, w / 2, h / 2, -1, 0); side(w / 2, h / 2, -w / 2, h / 2, 0, -1); side(-w / 2, h / 2, -w / 2, -h / 2, 1, 0);
+  x.save(); x.translate(cx, cy); x.rotate(rot);
+  x.beginPath(); pts.forEach(([px, py], i) => i ? x.lineTo(px, py) : x.moveTo(px, py)); x.closePath();
+  x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 14; x.shadowOffsetY = 6; x.fillStyle = '#f6f6f3'; x.fill(); x.shadowColor = 'transparent';
+  x.clip();
+  if (paper) { const sx = r() * (paper.width - w * 1.4), sy = r() * (paper.height - h * 1.4); x.drawImage(paper, Math.max(0, sx), Math.max(0, sy), w * 1.4, h * 1.4, -w / 2 - 4, -h / 2 - 4, w + 8, h + 8); }
+  if (tint) { x.globalCompositeOperation = 'multiply'; x.fillStyle = tint; x.fillRect(-w / 2 - 4, -h / 2 - 4, w + 8, h + 8); x.globalCompositeOperation = 'source-over'; }
+  x.restore();
+}
+// Cut-out numerals: glyphs filled with white paper, scuffed, over a hard ink shadow
+function tpCutout(x, paper, text, cx, base, size, seed) {
+  x.font = `400 ${size}px Anton`; const tw = x.measureText(text).width, pad = 20, w = Math.ceil(tw + pad * 2), h = Math.ceil(size * 1.15);
+  const L = document.createElement('canvas'); L.width = w; L.height = h; const g = L.getContext('2d'); g.font = x.font; g.fillStyle = '#f6f6f3'; g.fillText(text, pad, size);
+  if (paper) { g.globalCompositeOperation = 'source-in'; g.drawImage(paper, 0, 0, paper.width, paper.height, 0, 0, w, h); }
+  g.globalCompositeOperation = 'destination-out'; const r = lgRand(seed);
+  for (let i = 0, n = Math.round(w * h * .0026); i < n; i++) { g.globalAlpha = .3 + r() * .7; g.beginPath(); g.arc(r() * w, r() * h, .6 + r() * 2.4, 0, 7); g.fill(); }
+  for (let i = 0; i < 8; i++) { g.globalAlpha = .55; g.fillRect(r() * w, r() * h, 20 + r() * size * .55, 1.5 + r() * 2.5); }
+  const S = document.createElement('canvas'); S.width = w; S.height = h; const s = S.getContext('2d'); s.drawImage(L, 0, 0); s.globalCompositeOperation = 'source-in'; s.fillStyle = '#060908'; s.fillRect(0, 0, w, h);
+  x.drawImage(S, cx - w / 2 + 14, base - size + 14); x.drawImage(L, cx - w / 2, base - size);
+  return tw;
+}
+// A row of chips: [big, small] each; mode(k) -> 'white' | 'green'
+function tpChips(x, paper, items, cy, ch, mode, seed) {
+  const n = items.length, gap = 18, cw = Math.min(140, (TP.w + 20 - gap * (n - 1)) / n), left = TP.cx - (cw * n + gap * (n - 1)) / 2;
+  items.forEach(([big, small], k) => {
+    const green = mode(k) === 'green', cx = left + k * (cw + gap) + cw / 2, rot = (k % 2 ? 1 : -1) * (.025 + (k % 3) * .008);
+    tpChip(x, paper, cx, cy, cw, ch, rot, seed + k, green ? '#0f6b3a' : null);
+    x.save(); x.translate(cx, cy); x.rotate(rot);
+    tpPrint(x, big, 0, ch * .16, tpSize(x, big, cw - 18, ch * .5), green ? '#ffffff' : TP.ink);
+    tpPrint(x, small, 0, ch * .4, 15, green ? '#d6efdc' : TP.green, {font: 'Inter', weight: 800, spacing: 3, distress: false, alpha: 1});
+    x.restore();
+  });
+}
+
+// Senior Night is an event noted on the game, not a theme: its sticker stands in for the note's text pill
+const isSenior = s => /senior night/i.test(s.notes || '');
+function notePill(s) {
+  if (!s.notes) return '';
+  if (!isSenior(s)) return `<span class="pill">${esc(s.notes)}</span>`;
+  const rest = s.notes.replace(/(archmere\s+)?senior night/i, '').replace(/^[\s·,;:-]+|[\s·,;:-]+$/g, '');
+  return `<img class="theme-sticker event" src="${stickerSrc('Senior Night')}" alt="Senior Night" title="Senior Night" width="64" height="64" decoding="async">${rest ? `<span class="pill">${esc(rest)}</span>` : ''}`;
 }
