@@ -247,24 +247,8 @@ const LG_THEMES = {
   loss: {field: LG.ink, bar: LG.deep, dot: '15,107,58', dotMax: 0.55, shadow: LG.green, fade: '#9aa69f'}
 };
 let lgLogo;
-// The official A (archmere-auks.jpg) sits on a white box; flood-fill the outer white away (edges feathered so no halo),
-// keeping the white inside the A, so the full-colour mark sits cleanly on the green and ink header bars.
-const lgLoadLogo = () => lgLogo ||= new Promise(res => {
-  const im = new Image();
-  im.onload = () => {
-    const c = document.createElement('canvas'), w = c.width = im.naturalWidth, h = c.height = im.naturalHeight, x = c.getContext('2d');
-    x.drawImage(im, 0, 0); const img = x.getImageData(0, 0, w, h), p = img.data, seen = new Uint8Array(w * h), stack = [];
-    const light = i => Math.min(p[i * 4], p[i * 4 + 1], p[i * 4 + 2]);
-    for (let i = 0; i < w; i++) stack.push(i, (h - 1) * w + i); for (let j = 0; j < h; j++) stack.push(j * w, j * w + w - 1);
-    while (stack.length) {
-      const i = stack.pop(); if (seen[i]) continue; seen[i] = 1; const l = light(i); if (l < 200) continue;
-      p[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (255 - l) / 55)) * 255);
-      const px = i % w; if (px > 0) stack.push(i - 1); if (px < w - 1) stack.push(i + 1); if (i >= w) stack.push(i - w); if (i < w * (h - 1)) stack.push(i + w);
-    }
-    x.putImageData(img, 0, 0); res(c);
-  };
-  im.onerror = () => res(null); im.src = 'archmere-auks.jpg';
-});
+// Crisp full-colour Auks A (transparent PNG built from the clean brand mark)
+const lgLoadLogo = () => lgLogo ||= new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'logo-a-600.webp'; });
 async function lgFonts() {
   if (!document.fonts) return;
   await Promise.all(['400 100px Anton', '400 100px Yellowtail', '700 30px Inter', '800 30px Inter', '600 30px Inter'].map(f => document.fonts.load(f).catch(() => {})));
@@ -359,7 +343,7 @@ async function lgFrame(kicker, sub, watermark, mode = 'win') {
   }
   if (watermark) { x.save(); x.font = '400 360px Anton'; x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 3; const wm = watermark.toUpperCase(); x.strokeText(wm, W - x.measureText(wm).width + 40, 1150); x.restore(); }
   x.fillStyle = T.bar; x.fillRect(0, 0, W, 150);
-  const logo = await lgLogo; if (logo) x.drawImage(logo, M - 6, 22, 144, 106);
+  const logo = await lgLogo; if (logo) x.drawImage(logo, M - 6, 25, 140, 100);
   x.font = '400 46px Anton'; x.fillStyle = '#fff'; x.fillText('ARCHMERE', M + 156, 74);
   x.fillStyle = '#8fd4a4'; x.fillText('VOLLEYBALL', M + 156, 122);
   x.font = '800 24px Inter'; x.fillStyle = LG.mint; lgTracked(x, kicker, W - M, 80, 5, 'right');
@@ -545,3 +529,126 @@ function scheduleCalendar(list, isUp, off, today) {
   new MutationObserver(arm).observe(document.getElementById('main'), {childList: true, subtree: true});
   arm();
 })();
+
+/* ---------- Game-day graphic (upcoming games on the schedule) ---------- */
+let lgImgs = {};
+const lgLoadImg = src => lgImgs[src] ||= new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+// A logo centred in a white rounded tile
+function lgTile(x, img, cx, cy, size) {
+  lgRound(x, cx - size / 2, cy - size / 2, size, size, 30); x.fillStyle = '#fff'; x.fill();
+  if (!img) return;
+  const pad = size * .14, w = size - pad * 2, r = Math.min(w / img.width, w / img.height);
+  x.drawImage(img, cx - img.width * r / 2, cy - img.height * r / 2, img.width * r, img.height * r);
+}
+// d: {days, opponent, oppLogo, away, neutral, date (long), time, place, theme, record, season}
+async function gamedayGraphic(d) {
+  const today = d.days === 0, {c, x, W, M, T} = await lgFrame(today ? 'GAME DAY' : 'NEXT UP', `${d.season} · GIRLS VARSITY`, today ? 'GAMEDAY' : 'AUKS');
+  const [ours, theirs] = await Promise.all([lgLoadLogo(), d.oppLogo ? lgLoadImg(d.oppLogo) : null]);
+  // The count: GAME DAY today, otherwise days to go, with the script word slashed across
+  if (today) {
+    lgBig(x, 'GAME', M, 470, 250, T); lgBig(x, 'DAY', M, 710, 250, T);
+    lgFit(x, "let's go Auks", 520, 110, s => `400 ${s}px Yellowtail`);
+    x.save(); x.translate(M + 430, 690); x.rotate(-0.14); x.fillStyle = LG.ink; x.fillText("let's go Auks", 6, 8); x.fillStyle = '#fff'; x.fillText("let's go Auks", 0, 0); x.restore();
+  } else {
+    const n = String(d.days), nw = lgBig(x, n, M, 600, n.length > 1 ? 380 : 420, T), word = d.days === 1 ? 'day to go' : 'days to go';
+    const sx = M + nw - 30; lgFit(x, word, W - M - sx + 20, 130, s => `400 ${s}px Yellowtail`);
+    x.save(); x.translate(sx, 560); x.rotate(-0.14); x.fillStyle = LG.ink; x.fillText(word, 6, 8); x.fillStyle = '#fff'; x.fillText(word, 0, 0); x.restore();
+  }
+  // Matchup: our A and their mark in white tiles
+  const ty = 800, ts = 170;
+  lgTile(x, ours, M + ts / 2, ty, ts); lgTile(x, theirs, M + ts * 1.5 + 90, ty, ts);
+  x.textAlign = 'center'; x.font = '400 54px Anton'; x.fillStyle = LG.mint; x.fillText(d.away ? '@' : 'VS', M + ts + 45, ty + 18); x.textAlign = 'left';
+  const nx = M + ts * 2 + 130;
+  const words = d.opponent.toUpperCase().split(' '), lines = [];
+  // Opponent name on up to two lines, as large as fits
+  let size = 66; const fits = (txt, s) => { x.font = `400 ${s}px Anton`; return x.measureText(txt).width <= W - M - nx; };
+  for (; size > 34; size -= 2) { lines.length = 0; let cur = ''; for (const w of words) { const t = cur ? cur + ' ' + w : w; if (fits(t, size)) cur = t; else { if (cur) lines.push(cur); cur = w; } } if (cur) lines.push(cur); if (lines.length <= 2 && lines.every(l => fits(l, size))) break; }
+  x.font = `400 ${size}px Anton`; x.fillStyle = '#fff'; lines.forEach((l, i) => x.fillText(l, nx, ty - (lines.length - 1) * size * .5 + i * size * 1.02 + size * .35));
+  // When and where, plus the theme night
+  let y = 990;
+  x.font = '400 54px Anton'; x.fillStyle = '#fff'; const when = `${d.date}`.toUpperCase(); x.fillText(when, M, y);
+  if (d.time) { const ww = x.measureText(when).width; x.fillStyle = '#8fd4a4'; x.fillText(' · ' + d.time.toUpperCase(), M + ww, y); }
+  y += 50; x.font = '600 28px Inter'; x.fillStyle = LG.mint; lgFit(x, d.place, W - 2 * M, 28, s => `600 ${s}px Inter`); x.fillText(d.place, M, y);
+  if (d.theme) {
+    const label = (d.theme + ' night').toUpperCase(); x.font = '800 24px Inter'; const tw = [...label].reduce((s, ch) => s + x.measureText(ch).width + 4, 0) + 40;
+    lgRound(x, W - M - tw, 1072, tw, 52, 26); x.fillStyle = '#fff'; x.fill(); x.fillStyle = LG.green; lgTracked(x, label, W - M - tw / 2, 1107, 4, 'center');
+  }
+  // Footer
+  x.font = '400 50px Anton'; x.fillStyle = '#fff'; x.fillText(d.away ? 'AWAY' : d.neutral ? 'NEUTRAL SITE' : 'HOME', M, 1276);
+  x.font = '600 24px Inter'; x.fillStyle = '#9aa69f'; lgTracked(x, d.record ? `RECORD ${d.record} · LET'S GO AUKS` : "LET'S GO AUKS", M, 1320, 3);
+  return c;
+}
+function openGameday(date, opponent, from) {
+  const s = [...(D.currentSchedule || []), ...(D.scheduleOnly || [])].find(x => x.date === date && x.opponent === opponent); if (!s) return;
+  const played = D.games.filter(g => g.season === s.season && g.result), record = played.length ? `${played.filter(g => g.result === 'W').length}–${played.filter(g => g.result === 'L').length}` : '';
+  const logo = (opponentMark(opponent).match(/src="([^"]+)"/) || [])[1] || '';
+  const when = new Date(serial(s.date)).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
+  const time = (s.time || '').replace(/\s*(am|pm)$/i, m => ' ' + m.trim().toUpperCase());
+  const days = Math.max(0, daysTo(s)), title = `${s.homeAway === 'A' ? 'At' : 'Versus'} ${opponent}, ${when}`;
+  showGraphicDialog({
+    from, title: 'Game day: ' + title, alt: `Game-day graphic: Archmere ${s.homeAway === 'A' ? 'at' : 'vs'} ${opponent}, ${when}${time ? ' ' + time : ''}`,
+    file: `archmere-gameday-${fileSlug(opponent)}-${s.date.replace(/\//g, '-')}.png`,
+    links: `<a href="${route('opponent', {name: opponent})}">Head-to-head <span aria-hidden="true">→</span></a>`,
+    render: () => gamedayGraphic({days, opponent, oppLogo: logo, away: s.homeAway === 'A', neutral: s.homeAway === 'N', date: when, time, place: s.location || '', theme: themeFor(s), record, season: s.season})
+  });
+}
+document.addEventListener('click', e => {
+  const card = e.target.closest('[data-gameday]');
+  if (card && !e.target.closest('a,button,summary,details')) openGameday(card.dataset.gameday, card.dataset.opp, card);
+});
+document.addEventListener('keydown', e => {
+  const card = (e.key === 'Enter' || e.key === ' ') && e.target.matches?.('[data-gameday]') && e.target;
+  if (card) { e.preventDefault(); openGameday(card.dataset.gameday, card.dataset.opp, card); }
+});
+
+/* ---------- Player share card (button in the player hero) ---------- */
+// d: {first, last, mark (jersey or initials), jersey, cls, seasons, totals[5], honors[], college}
+async function playerCardGraphic(d) {
+  const {c, x, W, M, T} = await lgFrame('PLAYER CARD', d.cls ? `CLASS OF ${d.cls}` : 'ARCHMERE VOLLEYBALL', d.last);
+  // Jersey number (or initials) huge, with the name beside it
+  const mw = lgBig(x, d.mark, M, 560, d.mark.length > 2 ? 300 : 380, T);
+  const nx = M + mw + 50, room = W - M - nx;
+  if (d.jersey) { x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, 'NO.', nx, 300, 5); }
+  if (d.first) { lgFit(x, d.first.toUpperCase(), room, 64, s => `400 ${s}px Anton`); x.fillStyle = LG.mint; x.fillText(d.first.toUpperCase(), nx, 400); }
+  const ls = lgFit(x, d.last.toUpperCase(), room, 120, s => `400 ${s}px Anton`); x.fillStyle = '#fff'; x.fillText(d.last.toUpperCase(), nx, 400 + ls * .95);
+  x.font = '600 24px Inter'; x.fillStyle = '#c9d2cc'; lgFit(x, d.seasons, room, 24, s => `600 ${s}px Inter`); x.fillText(d.seasons, nx, 400 + ls * .95 + 50);
+  // Career totals
+  let y = 660; x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, 'CAREER', M, y, 6);
+  const top = y + 22, gap = 16, tw = (W - 2 * M - gap * 4) / 5, th = 140;
+  d.totals.forEach((v, k) => {
+    const tx = M + k * (tw + gap);
+    lgRound(x, tx, top, tw, th, 18); x.fillStyle = 'rgba(255,255,255,.10)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.28)'; x.lineWidth = 2; x.stroke();
+    x.textAlign = 'center'; lgFit(x, v == null ? '–' : Number(v).toLocaleString('en-US'), tw - 16, 70, s => `400 ${s}px Anton`); x.fillStyle = '#fff'; x.fillText(v == null ? '–' : Number(v).toLocaleString('en-US'), tx + tw / 2, top + 84);
+    x.textAlign = 'left'; x.font = '800 20px Inter'; x.fillStyle = LG.mint; lgTracked(x, BOX_SHORT[k].toUpperCase(), tx + tw / 2, top + 120, 3, 'center');
+  });
+  // Honors (top three) and college
+  y = top + th + 60;
+  const lines = [...d.honors.slice(0, d.college ? 2 : 3).map(h => [h.award.toUpperCase(), String(h.year || '')]), ...(d.college ? [[d.college.toUpperCase(), 'COLLEGE']] : [])];
+  if (lines.length) {
+    x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, 'HONORS', M, y, 6); y += 14;
+    for (const [what, when] of lines) {
+      x.fillStyle = 'rgba(255,255,255,.22)'; x.fillRect(M, y, W - 2 * M, 2); y += 58;
+      x.font = '400 34px Anton'; const ww = x.measureText(when).width; x.fillStyle = LG.mint; x.fillText(when, W - M - ww, y - 6);
+      lgFit(x, what, W - 2 * M - ww - 30, 40, s => `400 ${s}px Anton`); x.fillStyle = '#fff'; x.fillText(what, M, y - 6);
+      y += 6;
+    }
+  }
+  // Footer
+  x.font = '400 50px Anton'; x.fillStyle = '#fff'; x.fillText(d.cls ? `CLASS OF ${d.cls}` : 'ARCHMERE', M, 1276);
+  x.font = '600 24px Inter'; x.fillStyle = '#9aa69f'; lgTracked(x, 'GIRLS VARSITY VOLLEYBALL', M, 1320, 3);
+  return c;
+}
+const playerShareButton = p => `<button type="button" class="hero-share" data-player-card="${esc(p.id)}" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m-4 4 4-4 4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>Share card</button>`;
+function openPlayerCard(id, from) {
+  const p = D.players.find(x => x.id === id); if (!p) return;
+  const clean = p.name.replace(/\s*\(.*?\)/, '').trim(), parts = clean.split(/\s+/), last = parts.pop(), first = parts.join(' ');
+  const jersey = currentJersey(p.name), seasons = [...new Set([...D.stats.filter(s => s.name === p.name).map(s => s.season), ...D.roster.filter(r => r.name === p.name).map(r => r.season)])].sort((a, b) => a - b);
+  const honors = (AWARDS[p.name] || []).slice().sort((a, b) => honorRank(a) - honorRank(b) || (b.year || 0) - (a.year || 0));
+  const col = COLLEGE[p.name], cls = p.year === 'Unknown' ? '' : p.year;
+  showGraphicDialog({
+    from, title: 'Player card: ' + p.name, alt: `Player card graphic for ${p.name}${cls ? ', class of ' + cls : ''}`,
+    file: `archmere-${fileSlug(p.name)}-card.png`,
+    render: () => playerCardGraphic({first, last, mark: jersey || (first[0] || '') + last[0], jersey, cls, seasons: seasons.length ? seasons.join(' · ') + (seasons.length === 1 ? ' SEASON' : ' SEASONS') : '', totals: p.values, honors, college: col ? col.school : ''})
+  });
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-player-card]'); if (b) openPlayerCard(b.dataset.playerCard, b); });
