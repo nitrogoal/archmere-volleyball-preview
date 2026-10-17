@@ -733,3 +733,6 @@ html:has(.leader-modal[open]){overflow:hidden}
 @media(prefers-reduced-motion:reduce){.rafters .rafter-banner{animation:none!important;opacity:1!important;transform:none!important}.rafter-banner img{transform:none!important}}
 @media(max-width:600px){.rafters{padding-top:12px}.rafters:before{height:10px;top:5px}}
 .rafter-banner img{-webkit-user-drag:none;user-select:none;-webkit-tap-highlight-color:transparent}
+/* The rafter sits in front of the banners, so strap tops tuck behind it when a banner tilts */
+.rafters:before{z-index:2}
+.rafter-banner{position:relative;z-index:1}

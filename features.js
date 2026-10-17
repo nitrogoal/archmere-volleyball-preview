@@ -123,7 +123,7 @@ function playerCollege(name) {
 // State-title banners hanging from a rafter (Awards page and home); animated by the Rafter banners block below
 function rafterBanners() {
   const art = (TEAM.stateTitles || []).filter(t => t.banner).sort((a, b) => a.year - b.year);
-  return art.length ? `<div class="rafters" role="list" aria-label="State championship banners">${art.map((t, k) => `<figure class="rafter-banner" role="listitem" style="--k:${k};--amp:${[1, -.8, 1.25][k % 3]};--dur:${[1.5, 1.9, 1.3][k % 3]}s"><img src="${esc(t.banner)}" alt="${esc(t.year)} DIAA girls volleyball state champions banner" width="600" height="835" decoding="async" draggable="false"></figure>`).join('')}</div>` : '';
+  return art.length ? `<div class="rafters" role="list" aria-label="State championship banners">${art.map((t, k) => `<figure class="rafter-banner" role="listitem" style="--k:${k};--amp:${[1, -.8, 1.25][k % 3]};--dur:${[1.5, 1.9, 1.3][k % 3]}s"><img src="${esc(t.banner)}" alt="${esc(t.year)} DIAA girls volleyball state champions banner" width="600" height="915" decoding="async" draggable="false"></figure>`).join('')}</div>` : '';
 }
 const homeBanners = () => { const r = rafterBanners(); return r ? `<section class="block home-banners"><div class="sec-head"><h2>State champions</h2><a href="#awards">Awards →</a></div>${r}</section>` : ''; };
 function stateTitles() {
@@ -494,7 +494,7 @@ function scheduleCalendar(list, isUp, off, today) {
   // Scroll speed is read once per frame and smoothed, then applied as a steady force, so the motion is the same
   // whether the device fires a few scroll events (mouse wheel) or dozens (trackpad, phone).
   const FEEL = [{k: 34, c: 3.4, g: 1}, {k: 24, c: 2.8, g: 1.2}, {k: 46, c: 4.2, g: .85}];
-  const MAX = 4, PUSH = 90, STEP = 1 / 120; // degrees; force per unit of scroll speed; physics step (s)
+  const MAX = 3, PUSH = 80, STEP = 1 / 120; // degrees; force per unit of scroll speed; physics step (s)
   const bodies = new Map();
   let frame = 0, last = 0, lastY = scrollY, speed = 0;
   const body = img => { if (!bodies.has(img)) bodies.set(img, {a: 0, v: 0, ...FEEL[(+img.closest('.rafter-banner')?.style.getPropertyValue('--k') || 0) % FEEL.length]}); return bodies.get(img); };
@@ -510,7 +510,7 @@ function scheduleCalendar(list, isUp, off, today) {
       if (!img.isConnected) { bodies.delete(img); continue; }
       for (let n = Math.ceil(dt / STEP), h = dt / n; n--;) { b.v += (-b.k * b.a - b.c * b.v + drive * PUSH * b.g) * h; b.a += b.v * h; }
       if (Math.abs(b.a) > .01 || Math.abs(b.v) > .03) moving = true;
-      img.style.transform = `rotate(${(MAX * Math.tanh(b.a / MAX)).toFixed(3)}deg)`;   // soft limit at ±4°
+      img.style.transform = `rotate(${(MAX * Math.tanh(b.a / MAX)).toFixed(3)}deg)`;   // soft limit at ±3°
     }
     frame = moving && live.size ? requestAnimationFrame(step) : 0;
     if (!frame) speed = 0;
@@ -524,17 +524,17 @@ function scheduleCalendar(list, isUp, off, today) {
   addEventListener('pointermove', e => {
     const img = banner(e); if (!img) { lastX.delete(e.pointerId); return; }
     const px = lastX.get(e.pointerId); lastX.set(e.pointerId, e.clientX); if (px == null || px === e.clientX) return;
-    const b = body(img); b.v += Math.max(-6, Math.min(6, (px - e.clientX) * .35)); run();
+    const b = body(img); b.v = Math.max(-14, Math.min(14, b.v + Math.max(-2.5, Math.min(2.5, (px - e.clientX) * .15)))); run();
   }, {passive: true});
   addEventListener('pointerdown', e => {
     const img = e.pointerType !== 'mouse' && banner(e); if (!img) return;
     const r = img.getBoundingClientRect(), off = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
-    const b = body(img); b.v += (off >= 0 ? 1 : -1) * (13 + Math.min(1, Math.abs(off)) * 9); run();
+    const b = body(img); b.v = Math.max(-16, Math.min(16, b.v + (off >= 0 ? 1 : -1) * (10 + Math.min(1, Math.abs(off)) * 6))); run();
   }, {passive: true});
   addEventListener('pointerup', e => lastX.delete(e.pointerId), {passive: true});
   addEventListener('pointercancel', e => lastX.delete(e.pointerId), {passive: true});
-  // A light breeze: now and then one banner gets a small nudge (about 1°)
-  setInterval(() => { if (still.matches || document.hidden) return; const list = imgs(); if (!list.length || Math.random() < .5) return; const b = body(list[Math.floor(Math.random() * list.length)]); b.v += (Math.random() < .5 ? -1 : 1) * (4 + Math.random() * 3); run(); }, 2800);
+  // A light breeze: now and then one banner gets a small nudge (under 1°)
+  setInterval(() => { if (still.matches || document.hidden) return; const list = imgs(); if (!list.length || Math.random() < .5) return; const b = body(list[Math.floor(Math.random() * list.length)]); b.v += (Math.random() < .5 ? -1 : 1) * (3 + Math.random() * 2); run(); }, 2800);
   const arm = () => document.querySelectorAll('.rafters:not(.armed)').forEach(r => {
     r.classList.add('armed');
     if (!io || still.matches) { r.classList.add('is-in', 'settled'); return; }
