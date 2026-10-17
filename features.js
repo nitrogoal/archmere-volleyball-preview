@@ -240,7 +240,24 @@ const LG_THEMES = {
   loss: {field: LG.ink, bar: LG.deep, dot: '15,107,58', dotMax: 0.55, shadow: LG.green, fade: '#9aa69f'}
 };
 let lgLogo;
-const lgLoadLogo = () => lgLogo ||= new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'archmere-a-dark.png'; });
+// The official A (archmere-auks.jpg) sits on a white box; flood-fill the outer white away (edges feathered so no halo),
+// keeping the white inside the A, so the full-colour mark sits cleanly on the green and ink header bars.
+const lgLoadLogo = () => lgLogo ||= new Promise(res => {
+  const im = new Image();
+  im.onload = () => {
+    const c = document.createElement('canvas'), w = c.width = im.naturalWidth, h = c.height = im.naturalHeight, x = c.getContext('2d');
+    x.drawImage(im, 0, 0); const img = x.getImageData(0, 0, w, h), p = img.data, seen = new Uint8Array(w * h), stack = [];
+    const light = i => Math.min(p[i * 4], p[i * 4 + 1], p[i * 4 + 2]);
+    for (let i = 0; i < w; i++) stack.push(i, (h - 1) * w + i); for (let j = 0; j < h; j++) stack.push(j * w, j * w + w - 1);
+    while (stack.length) {
+      const i = stack.pop(); if (seen[i]) continue; seen[i] = 1; const l = light(i); if (l < 200) continue;
+      p[i * 4 + 3] = Math.round(Math.max(0, Math.min(1, (255 - l) / 55)) * 255);
+      const px = i % w; if (px > 0) stack.push(i - 1); if (px < w - 1) stack.push(i + 1); if (i >= w) stack.push(i - w); if (i < w * (h - 1)) stack.push(i + w);
+    }
+    x.putImageData(img, 0, 0); res(c);
+  };
+  im.onerror = () => res(null); im.src = 'archmere-auks.jpg';
+});
 async function lgFonts() {
   if (!document.fonts) return;
   await Promise.all(['400 100px Anton', '400 100px Yellowtail', '700 30px Inter', '800 30px Inter', '600 30px Inter'].map(f => document.fonts.load(f).catch(() => {})));
@@ -335,9 +352,9 @@ async function lgFrame(kicker, sub, watermark, mode = 'win') {
   }
   if (watermark) { x.save(); x.font = '400 360px Anton'; x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 3; const wm = watermark.toUpperCase(); x.strokeText(wm, W - x.measureText(wm).width + 40, 1150); x.restore(); }
   x.fillStyle = T.bar; x.fillRect(0, 0, W, 150);
-  const logo = await lgLogo; if (logo) x.drawImage(logo, M, 33, 113, 84);
-  x.font = '400 46px Anton'; x.fillStyle = '#fff'; x.fillText('ARCHMERE', M + 134, 74);
-  x.fillStyle = '#8fd4a4'; x.fillText('VOLLEYBALL', M + 134, 122);
+  const logo = await lgLogo; if (logo) x.drawImage(logo, M - 6, 22, 144, 106);
+  x.font = '400 46px Anton'; x.fillStyle = '#fff'; x.fillText('ARCHMERE', M + 156, 74);
+  x.fillStyle = '#8fd4a4'; x.fillText('VOLLEYBALL', M + 156, 122);
   x.font = '800 24px Inter'; x.fillStyle = LG.mint; lgTracked(x, kicker, W - M, 80, 5, 'right');
   x.font = '600 24px Inter'; x.fillStyle = '#9aa69f'; lgTracked(x, sub, W - M, 116, 3, 'right');
   lgStripe(x, 150, 22); lgStripe(x, 1186, 22);
