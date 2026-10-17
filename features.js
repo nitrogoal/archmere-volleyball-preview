@@ -983,9 +983,13 @@ function tpChips(x, paper, items, cy, ch, mode, seed) {
 
 // Senior Night is an event noted on the game, not a theme: its sticker stands in for the note's text pill
 const isSenior = s => /senior night/i.test(s.notes || '');
-function notePill(s) {
+// textOnly: the sticker is shown elsewhere (after the opponent name), so only leftover note text becomes a pill
+function notePill(s, textOnly) {
   if (!s.notes) return '';
   if (!isSenior(s)) return `<span class="pill">${esc(s.notes)}</span>`;
   const rest = s.notes.replace(/(archmere\s+)?senior night/i, '').replace(/^[\s·,;:-]+|[\s·,;:-]+$/g, '');
+  if (textOnly) return rest ? `<span class="pill">${esc(rest)}</span>` : '';
   return `<img class="theme-sticker event" src="${stickerSrc('Senior Night')}" alt="Senior Night" title="Senior Night" width="64" height="64" decoding="async">${rest ? `<span class="pill">${esc(rest)}</span>` : ''}`;
 }
+// Stickers that sit inline after the opponent name on schedule and Next up cards
+const cardStickers = s => { const h = (isSenior(s) ? `<img class="theme-sticker inline event" src="${stickerSrc('Senior Night')}" alt="Senior Night" title="Senior Night" width="64" height="64" decoding="async">` : '') + themeSticker(themeFor(s), 'inline'); return h ? `<span class="stk">${h}</span>` : ''; };

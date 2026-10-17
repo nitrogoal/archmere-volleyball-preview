@@ -797,3 +797,8 @@ html:has(.leader-modal[open]){overflow:hidden}
 .next .theme-sticker{width:46px;height:46px}
 @media(max-width:600px){.theme-sticker{width:46px;height:46px}.feature .theme-sticker{width:60px;height:60px}}
 @media(prefers-reduced-motion:reduce){.theme-sticker{transition:none}}
+/* Stickers inline after the opponent name (keeps cards to their normal height) */
+.stk{white-space:nowrap;margin-left:6px}.theme-sticker.inline{width:28px;height:28px;margin:-3px 0;vertical-align:middle}
+.theme-sticker.inline+.theme-sticker.inline{margin-left:3px}
+.feature h3 .theme-sticker.inline{width:42px;height:42px;margin:-8px 0}
+@media(max-width:600px){.theme-sticker.inline{width:26px;height:26px}.feature h3 .theme-sticker.inline{width:36px;height:36px}}
