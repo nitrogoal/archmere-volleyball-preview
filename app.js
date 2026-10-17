@@ -57,7 +57,22 @@ function boxLeaders(rows){
  const shortName=n=>{const p=n.replace(/\s*\(.*?\)/,'').trim().split(/\s+/);return p.length>1?p[0][0]+'. '+p.slice(1).join(' '):n};
  const picks=[0,3,4,2,1].map(i=>{const v=rows.map(r=>r.values[i]).filter(v=>v!=null),max=Math.max(0,...v);return max>0?{i,max,names:rows.filter(r=>r.values[i]===max).map(r=>r.name)}:null}).filter(Boolean).slice(0,3);
  if(!picks.length)return '';
- return `<div class="box-leaders" aria-label="Match leaders">${picks.map(p=>`<a class="box-leader" href="${p.names.length===1?pLink(p.names[0]):'#'}" data-box-lead="${p.i}"><span class="bl-cat">${cats[p.i]}</span><strong>${p.max}</strong><b>${p.names.length>2?p.names.length+' tied':p.names.length>1?p.names.map(n=>esc(shortName(n).split(' ').pop())).join(' & '):esc(shortName(p.names[0]))}</b></a>`).join('')}</div>`;
+ return `<div class="box-leaders" aria-label="Match leaders">${picks.map(p=>`<a class="box-leader" href="${pLink(p.names[0])}" data-box-lead="${p.i}" aria-haspopup="dialog"><span class="bl-cat">${cats[p.i]}</span><strong>${p.max}</strong><b>${p.names.length>2?p.names.length+' tied':p.names.length>1?p.names.map(n=>esc(shortName(n).split(' ').pop())).join(' & '):esc(shortName(p.names[0]))}</b></a>`).join('')}</div>`;
+}
+// Match-leader dialog: green graphic (big number, name, game line) over the player's five stats for this match
+function openLeader(id,i,from){
+ const g=D.games.find(x=>x.id===id),rows=D.stats.filter(s=>s.id===id);if(!g||!rows.length)return;
+ const max=Math.max(0,...rows.map(r=>r.values[i]).filter(v=>v!=null)),leaders=rows.filter(r=>r.values[i]===max),one=leaders.length===1;
+ const last=n=>n.replace(/\s*\(.*?\)/,'').trim().split(/\s+/).pop(),p=one?pByName(leaders[0].name):null,j=one?currentJersey(leaders[0].name):'';
+ const strip=r=>`<div class="lm-strip">${cats.map((c,k)=>`<div class="${k===i?'is-lead':''}"><strong>${fmt(r.values[k])}</strong><span>${BOX_SHORT[k]}</span></div>`).join('')}</div>`;
+ let d=$('#leader-modal');
+ if(!d){d=document.createElement('dialog');d.id='leader-modal';d.className='leader-modal';d.setAttribute('aria-labelledby','lm-title');document.body.append(d);
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-lm-close]')||e.target.closest('a'))d.close()});
+  d.addEventListener('close',()=>d._from?.focus({preventScroll:true}));addEventListener('hashchange',()=>d.open&&d.close())}
+ d._from=from;
+ const meta=[j?'#'+esc(j):'',one&&p&&p.year!=='Unknown'?'Class of '+p.year:'',one?'':leaders.length+' tied for the lead'].filter(Boolean).join(' · ');
+ d.innerHTML=`<div class="lm-card" data-word="${esc(one?last(leaders[0].name):cats[i])}"><button type="button" class="lm-close" data-lm-close aria-label="Close">×</button><span class="lm-kicker">Match leader · ${cats[i]}</span><div class="lm-big"><strong>${max}</strong><span>${cats[i]}</span></div><h2 class="lm-name" id="lm-title">${one?esc(leaders[0].name):leaders.map(r=>esc(last(r.name))).join(' & ')}</h2>${meta?`<p class="lm-meta">${meta}</p>`:''}<p class="lm-game">${date(g.date)} · ${g.homeAway==='A'?'at':'vs'} ${esc(g.opponent)}${g.result?` · <b>${g.result} ${esc(g.score)}</b>`:''}</p></div><div class="stripe"></div><div class="lm-body">${leaders.map(r=>`${one?'':`<b class="lm-who">${esc(r.name)}</b>`}${strip(r)}`).join('')}<div class="lm-actions">${leaders.map(r=>`<a href="${pLink(r.name)}">${one?'Player page':esc(last(r.name))} <span aria-hidden="true">→</span></a>`).join('')}<button type="button" data-lm-close>Close</button></div></div>`;
+ d.showModal();
 }
 function boxTable(rows,selected=-1){
  const sorted=[...rows].sort((a,b)=>selected<0?a.name.localeCompare(b.name):(b.values[selected]??-1)-(a.values[selected]??-1)||a.name.localeCompare(b.name));
@@ -67,7 +82,7 @@ function boxTable(rows,selected=-1){
  return `<table class="box-table"><thead><tr><th scope="col" class="bt-player">Player</th>${cats.map((c,i)=>`<th scope="col" class="${selected===i?'is-sorted':''}"><button type="button" data-box-stat="${i}" aria-pressed="${selected===i}" aria-label="Sort by ${c.toLowerCase()}"><span class="bt-long">${c}</span><span class="bt-short" aria-hidden="true">${BOX_SHORT[i]}</span></button></th>`).join('')}</tr></thead><tbody>${sorted.map(r=>{const j=currentJersey(r.name);return `<tr><th scope="row" class="bt-player"><a href="${pLink(r.name)}">${esc(r.name)}</a>${j?`<small>#${esc(j)}</small>`:''}</th>${r.values.map((v,i)=>cell(v,i)).join('')}</tr>`}).join('')}</tbody><tfoot><tr><th scope="row" class="bt-player">Team</th>${totals.map((v,i)=>cell(v,i,true)).join('')}</tr></tfoot></table>`;
 }
 document.addEventListener('click',e=>{
- const tie=e.target.closest('.box-leader[href="#"]');if(tie){e.preventDefault();const b=tie.closest('.box-explorer').querySelector(`.box-table [data-box-stat="${tie.dataset.boxLead}"]`);if(b&&b.getAttribute('aria-pressed')!=='true')b.click();return}
+ const lead=e.target.closest('.box-leader');if(lead){if(e.metaKey||e.ctrlKey||e.shiftKey)return;e.preventDefault();openLeader(lead.closest('.box-explorer').dataset.game,Number(lead.dataset.boxLead),lead);return}
  const button=e.target.closest('.box-explorer [data-box-stat]');if(!button)return;
  const panel=button.closest('.box-explorer'),i=Number(button.dataset.boxStat),selected=button.getAttribute('aria-pressed')==='true'?-1:i;
  panel.querySelector('.box-table-wrap').innerHTML=boxTable(D.stats.filter(s=>s.id===panel.dataset.game),selected);
