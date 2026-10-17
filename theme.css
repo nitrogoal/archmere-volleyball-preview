@@ -759,8 +759,6 @@ html:has(.leader-modal[open]){overflow:hidden}
 /* Share cues: the same small icon wherever a tap opens a share graphic */
 .share-cue{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--light);color:var(--green);flex:0 0 auto;transition:background .15s,color .15s}
 .share-cue svg{width:13px;height:13px}
-.game .res .res-top{display:inline-flex;align-items:center;gap:6px}
-.game.has-graphic:hover .share-cue,.game.has-graphic:focus-visible .share-cue{background:var(--green);color:#fff}
 .share-hint{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:600 12px var(--body);color:var(--muted)}
 .box-leader .bl-share{position:absolute;top:10px;right:10px;width:26px;height:26px;background:#ffffff1f;color:#fff;z-index:1}
 .box-leader:hover .bl-share{background:#fff;color:var(--ink)}
@@ -771,5 +769,19 @@ html:has(.leader-modal[open]){overflow:hidden}
 .share-tip-x{flex:0 0 auto;width:30px;height:30px;border:0;border-radius:50%;background:none;color:var(--muted);font:400 20px/1 var(--body);cursor:pointer}
 .share-tip-x:hover{background:#dbe9df;color:var(--ink)}
 @media(max-width:600px){.box-leader .bl-share{top:7px;right:7px;width:22px;height:22px}.box-leader .bl-share svg{width:11px;height:11px}.share-tip{gap:10px;padding:9px 8px 9px 12px}.share-tip p{font-size:12.5px}}
-.feature .f-share{position:absolute;right:16px;bottom:22px;width:30px;height:30px;background:#ffffff26;color:#fff;z-index:2}
-.feature.has-graphic:hover .f-share{background:#fff;color:var(--green)}
+/* Share cues, round 2: a line in each card's action column, and a Share pill on the Next up card */
+.game .res .share-line{display:inline-flex;align-items:center;gap:5px;font:600 12px var(--body);color:var(--green);padding:2px 0;white-space:nowrap}
+.game .res .share-line svg{width:13px;height:13px}
+.game.has-graphic:hover .share-line{text-decoration:underline}
+.feature .f-meta .f-actions{grid-template-columns:repeat(2,minmax(0,1fr)) auto}
+.feature .f-actions .f-share-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 16px 0 12px;border:1px solid #ffffff59;border-radius:999px;background:#00000024;color:#fff;font:700 13px var(--body);cursor:pointer;white-space:nowrap}
+.feature .f-actions .f-share-btn i{display:inline-grid;place-items:center;width:18px;height:18px;font-style:normal}
+.feature .f-actions .f-share-btn svg{width:16px;height:16px}
+.feature .f-actions .f-share-btn b{font:inherit}
+.feature .f-actions .f-share-btn:hover{background:#00000040;border-color:#fff}
+.feature .f-actions .f-share-btn:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+@media(max-width:520px){.feature .f-meta .f-actions{grid-template-columns:repeat(2,minmax(0,1fr)) 42px}.feature .f-actions .f-share-btn{padding:0;width:42px}.feature .f-actions .f-share-btn b{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
+.game .res .share-line .sl-short{display:none}
+@media(max-width:420px){.game .res .share-line .sl-long{display:none}.game .res .share-line .sl-short{display:inline}}
+/* Leader card label hugs its text and stays clear of the corner share icon */
+.box-leader .bl-cat{align-self:flex-start;max-width:calc(100% - 34px)}

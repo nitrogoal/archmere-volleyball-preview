@@ -655,6 +655,8 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-play
 
 /* ---------- Share cues: one icon wherever a share graphic opens, plus a one-time tip on the schedule ---------- */
 const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5"/></svg>';
+// Schedule cards: a quiet action line, styled like the card's Box score / Official links
+const shareLine = () => `<span class="share-line" aria-hidden="true">${SHARE_ICON}<span class="sl-long">Share graphic</span><span class="sl-short">Share</span></span>`;
 const shareCue = (cls = '') => `<span class="share-cue ${cls}" aria-hidden="true">${SHARE_ICON}</span>`;
 const TIP_KEY = 'auksvb-tip-share-v1';
 const tipSeen = () => { try { return localStorage.getItem(TIP_KEY) === '1'; } catch { return false; } };
