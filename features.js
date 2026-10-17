@@ -269,6 +269,12 @@ function lgStripe(ctx, y, h) {
 function lgRound(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 // d: {value, cat, catShort[], names[], first, last, tie, meta, season, result, score, opponent, away, date, stats|null, lead}
 async function leaderGraphic(d) {
+  const tres = d.result ? `${d.result === 'W' ? 'WIN' : 'LOSS'} ${d.score}` : d.score || '';
+  const tc = await playerTpl({kicker: d.tie ? 'TIED FOR THE MATCH LEAD' : 'MATCH LEADER', first: d.tie ? '' : d.first, last: d.tie ? d.names.join(' & ') : d.last,
+    big: String(d.value), bigSize: 300, script: d.cat, sub: d.meta || `${d.season} SEASON`,
+    tiles: d.stats ? d.stats.map((v, k) => [v == null ? '–' : String(v), d.catShort[k].toUpperCase()]) : null, hi: d.lead, tilesLabel: 'MATCH LINE',
+    linesTitle: 'THE MATCH', lines: [[`${d.away ? '@' : 'VS'} ${d.opponent}`.toUpperCase(), ''], [tres.toUpperCase(), ''], [d.date.toUpperCase(), '']]});
+  if (tc) return tc;
   const {c, x, W, M} = await lgFrame(d.tie ? 'TIED FOR THE LEAD' : 'MATCH LEADER', `${d.season} · GIRLS VARSITY`, d.last, 'win', {seed: `${d.names.join('&')}|${d.cat}|${d.date}`, style: 'type', words: [d.cat, d.tie ? 'AUKS' : d.last]});
   // The number, with the stat word in script slashed across its lower right
   const base = 640, nw = lgBig(x, String(d.value), M, base, String(d.value).length > 2 ? 400 : 500);
@@ -447,6 +453,7 @@ function lgBig(x, text, px, base, size, T = LG_THEMES.win) {
 }
 // d: {win, loss, score, opponent, away, sets[[a,b]], record, date, place, season, phase, leaders[{cat, name, value}]}
 async function postgameGraphic(d) {
+  const tc = await finalTpl(d); if (tc) return tc;
   const mode = d.loss ? 'loss' : 'win', {c, x, W, M, T} = await lgFrame('FINAL', `${d.season} · GIRLS VARSITY`, d.win ? 'WIN' : 'FINAL', mode, {seed: `${d.opponent}|${d.date}`, style: d.loss ? 'river' : 'seams'});
   // Center the content block between the stripes when there are no sets/performers to fill it
   const nL = Math.min(3, d.leaders.length), need = 470 + (d.sets.length ? 180 : 30) + (nL ? 18 + nL * 84 : 0), off = Math.max(0, (1000 - need) / 2 - 10);
@@ -628,6 +635,7 @@ function lgTile(x, img, cx, cy, size) {
 }
 // d: {days, opponent, oppLogo, away, neutral, date (long), time, place, theme, record, season}
 async function gamedayGraphic(d) {
+  const tc = await gamedayTpl(d); if (tc) return tc;
   const today = d.days === 0, {c, x, W, M, T} = await lgFrame(today ? 'GAME DAY' : 'NEXT UP', `${d.season} · GIRLS VARSITY`, today ? 'GAMEDAY' : 'AUKS', 'win', {seed: `${d.opponent}|${d.date}`, style: 'river'});
   const [ours, theirs] = await Promise.all([lgLoadLogo(), d.oppLogo ? lgLoadImg(d.oppLogo) : null]);
   // The count: GAME DAY today, otherwise days to go, with the script word slashed across
@@ -690,6 +698,10 @@ document.addEventListener('keydown', e => {
 /* ---------- Player share card (button in the player hero) ---------- */
 // d: {first, last, mark (jersey or initials), jersey, cls, seasons, totals[5], honors[], college}
 async function playerCardGraphic(d) {
+  const tc = await playerTpl({kicker: d.cls ? `PLAYER CARD  ·  CLASS OF ${d.cls}` : 'PLAYER CARD', first: d.first, last: d.last, big: d.mark, sub: d.seasons,
+    tiles: d.totals.map((v, k) => [v == null ? '–' : Number(v).toLocaleString('en-US'), BOX_SHORT[k].toUpperCase()]), hi: -1, tilesLabel: 'CAREER TOTALS',
+    linesTitle: 'HONORS', lines: [...d.honors.slice(0, d.college ? 2 : 3).map(h => [h.award.toUpperCase(), String(h.year || '')]), ...(d.college ? [[d.college.toUpperCase(), 'COLLEGE']] : [])]});
+  if (tc) return tc;
   const {c, x, W, M, T} = await lgFrame('PLAYER CARD', d.cls ? `CLASS OF ${d.cls}` : 'ARCHMERE VOLLEYBALL', d.last, 'win', {seed: `${d.first} ${d.last}`, style: 'type', words: [d.last, d.jersey ? '#' + d.jersey : d.mark]});
   // Jersey number (or initials) huge, with the name beside it
   const mw = lgBig(x, d.mark, M, 560, d.mark.length > 2 ? 300 : 380, T);
@@ -752,3 +764,132 @@ document.addEventListener('click', e => {
   try { localStorage.setItem(TIP_KEY, '1'); } catch {}
   x.closest('.share-tip')?.remove();
 });
+
+/* ---------- Template share graphics: Astra-made torn-paper collage art (blank panels) + live text drawn here ----------
+   Zones measured from the 1080x1350 templates (brand/tpl-*-v1.webp):
+   gameday/final: top paper 113-493, dark centre 498-986, paper 993-1126, green strip 1132-1152, paper 1157-1332
+   player:        top paper 113-353, dark centre 359-980, paper 988-1335.  Paper spans about x 150-940. */
+const TPL = {gameday: 'brand/tpl-gameday-v1.webp', final: 'brand/tpl-final-v1.webp', player: 'brand/tpl-player-v1.webp'};
+const TP = {cx: 545, w: 700, ink: '#15191a', green: '#0f6b3a', cream: '#f3ead9'};
+async function tplCanvas(name) {
+  const [img] = await Promise.all([lgLoadImg(TPL[name]), lgFonts(), lgLoadLogo()]);
+  if (!img) return null;
+  const c = document.createElement('canvas'); c.width = LG.w; c.height = LG.h; const x = c.getContext('2d');
+  x.drawImage(img, 0, 0, LG.w, LG.h); return {c, x};
+}
+// Largest size (<= max) at which text fits the width
+function tpSize(x, text, width, max, font = 'Anton', weight = 400) { let s = max; do { x.font = `${weight} ${s}px ${font}`; } while (x.measureText(text).width > width && (s -= 2) > 10); return s; }
+// Distressed print: text on its own layer, speckle-erased and scuffed, laid on the paper slightly translucent
+function tpPrint(x, text, px, base, size, color, o = {}) {
+  const font = o.font || 'Anton', weight = o.weight || 400, spacing = o.spacing || 0;
+  x.font = `${weight} ${size}px ${font}`;
+  const tw = [...text].reduce((s, ch) => s + x.measureText(ch).width + spacing, -spacing), pad = 12;
+  const w = Math.ceil(tw + pad * 2), h = Math.ceil(size * 1.25), L = document.createElement('canvas'); L.width = w; L.height = h;
+  const g = L.getContext('2d'); g.font = x.font; g.fillStyle = color;
+  let cx = pad; for (const ch of text) { g.fillText(ch, cx, size); cx += g.measureText(ch).width + spacing; }
+  if (o.distress !== false) {
+    const r = lgRand(text + size); g.globalCompositeOperation = 'destination-out';
+    for (let i = 0, n = Math.round(w * h * .0035); i < n; i++) { g.globalAlpha = .35 + r() * .65; g.beginPath(); g.arc(r() * w, r() * h, .5 + r() * (size > 100 ? 2.4 : 1.2), 0, 7); g.fill(); }
+    for (let i = 0; i < (size > 100 ? 7 : 2); i++) { g.globalAlpha = .45; g.fillRect(r() * w, r() * h, 12 + r() * size * .5, 1 + r() * 2); }
+  }
+  const dx = o.align === 'left' ? px - pad : o.align === 'right' ? px - w + pad : px - w / 2;
+  x.save(); x.globalAlpha = o.alpha ?? .94; x.drawImage(L, dx, base - size); x.restore();
+  return tw;
+}
+// Green tape tag with white type (e.g. "VS", "IN 3 DAYS")
+function tpTag(x, text, cx, cy, size, rot = -.05) {
+  x.font = `400 ${size}px Anton`; const tw = x.measureText(text).width, w = tw + size * .9, h = size * 1.25;
+  x.save(); x.translate(cx, cy); x.rotate(rot); x.fillStyle = TP.green; x.beginPath();
+  x.moveTo(-w / 2, -h / 2); for (let i = 0; i <= 8; i++) x.lineTo(-w / 2 + w * i / 8, -h / 2 + (i % 2 ? 3 : -2)); x.lineTo(w / 2, h / 2); for (let i = 8; i >= 0; i--) x.lineTo(-w / 2 + w * i / 8, h / 2 + (i % 2 ? -3 : 2)); x.closePath(); x.fill();
+  x.fillStyle = '#fff'; x.textAlign = 'center'; x.fillText(text, 0, size * .36); x.textAlign = 'left'; x.restore();
+}
+const tpHeader = (x, y, line = 'ARCHMERE ACADEMY') => {
+  const s = tpSize(x, line, 520, 40); tpPrint(x, line, TP.cx, y, s, TP.green, {spacing: 4, distress: false, alpha: 1});
+  tpPrint(x, 'GIRLS VARSITY VOLLEYBALL', TP.cx, y + 32, 22, TP.ink, {font: 'Inter', weight: 800, spacing: 6, distress: false, alpha: .85});
+  x.fillStyle = TP.green; x.fillRect(TP.cx - 360, y - 14, 70, 3); x.fillRect(TP.cx + 290, y - 14, 70, 3);
+};
+// Dark-centre tiles (sets, stats): cream for the highlighted one, outlined otherwise
+function tpTiles(x, items, top, th, hi) {
+  const n = items.length, gap = 14, tw = Math.min(150, (TP.w + 40 - gap * (n - 1)) / n), left = TP.cx - (tw * n + gap * (n - 1)) / 2;
+  items.forEach(([big, small], k) => {
+    const tx = left + k * (tw + gap), on = hi(k);
+    lgRound(x, tx, top, tw, th, 14); x.fillStyle = on ? TP.cream : 'rgba(255,255,255,.08)'; x.fill(); if (!on) { x.strokeStyle = 'rgba(255,255,255,.3)'; x.lineWidth = 2; x.stroke(); }
+    x.textAlign = 'center'; const s = tpSize(x, big, tw - 16, th * .48); x.fillStyle = on ? TP.green : '#fff'; x.fillText(big, tx + tw / 2, top + th * .58);
+    x.textAlign = 'left'; x.font = '800 16px Inter'; x.fillStyle = on ? TP.ink : LG.mint; lgTracked(x, small, tx + tw / 2, top + th * .85, 3, 'center');
+  });
+}
+
+async function gamedayTpl(d) {
+  const t = await tplCanvas('gameday'); if (!t) return null; const {c, x} = t;
+  const theirs = d.oppLogo ? await lgLoadImg(d.oppLogo) : null, ours = await lgLoadLogo();
+  tpHeader(x, 178);
+  const head = d.days === 0 ? 'GAME DAY' : d.days === 1 ? 'TOMORROW' : 'NEXT UP';
+  tpPrint(x, head, TP.cx, 430, tpSize(x, head, TP.w, 230), TP.ink);
+  if (d.days > 0) tpTag(x, d.days === 1 ? '1 DAY TO GO' : `${d.days} DAYS TO GO`, TP.cx - 150, 472, 30, -.05);
+  if (ours) { const w = 150, h = w * ours.height / ours.width; x.drawImage(ours, 820, 380, w, h); }
+  // Centre: the matchup
+  const ty = 690, ts = 200; lgTile(x, ours, TP.cx - 170, ty, ts); lgTile(x, theirs, TP.cx + 170, ty, ts);
+  x.textAlign = 'center'; x.font = '400 64px Anton'; x.fillStyle = LG.mint; x.fillText(d.away ? '@' : 'VS', TP.cx, ty + 22); x.textAlign = 'left';
+  if (d.theme) { const s = `THEME: ${d.theme.toUpperCase()} NIGHT`; x.font = '800 26px Inter'; x.fillStyle = '#fff'; lgTracked(x, s, TP.cx, 880, 5, 'center'); }
+  else { x.font = '800 22px Inter'; x.fillStyle = 'rgba(214,239,220,.75)'; lgTracked(x, d.away ? 'ON THE ROAD' : 'AT ARCHMERE', TP.cx, 880, 6, 'center'); }
+  // Opponent, the green strip, then when and where
+  const opp = d.opponent.toUpperCase(); tpPrint(x, opp, TP.cx + 30, 1092, tpSize(x, opp, TP.w - 110, 92), TP.ink);
+  tpTag(x, d.away ? '@' : 'VS', TP.cx - Math.min(TP.w, x.measureText(opp).width) / 2 - 30, 1058, 34, -.08);
+  x.font = '800 18px Inter'; x.fillStyle = '#fff'; lgTracked(x, d.record ? `${d.away ? 'AWAY' : 'HOME'} · RECORD ${d.record}` : (d.away ? 'AWAY' : 'HOME'), TP.cx, 1149, 5, 'center');
+  const when = `${d.date}${d.time ? ' • ' + d.time : ''}`.toUpperCase(); tpPrint(x, when, TP.cx, 1222, tpSize(x, when, TP.w, 56), TP.green, {spacing: 2});
+  if (d.place) tpPrint(x, d.place.toUpperCase(), TP.cx, 1264, tpSize(x, d.place.toUpperCase(), TP.w, 26, 'Inter', 800), TP.ink, {font: 'Inter', weight: 800, spacing: 3, distress: false, alpha: .85});
+  tpPrint(x, "CLAYMONT, DE  ·  GO AUKS  ·  AUKSVB.COM", TP.cx, 1302, 16, TP.green, {font: 'Inter', weight: 800, spacing: 3, distress: false, alpha: .9});
+  return c;
+}
+
+async function finalTpl(d) {
+  const t = await tplCanvas('final'); if (!t) return null; const {c, x} = t;
+  tpHeader(x, 178);
+  const head = d.win ? 'AUKS WIN' : 'FINAL'; tpPrint(x, head, TP.cx, 430, tpSize(x, head, TP.w, 230), TP.ink);
+  if (d.phase === 'Postseason') tpTag(x, 'POSTSEASON', TP.cx + 260, 470, 28, -.06);
+  // Centre: score and sets
+  const score = d.score.replace('-', '–'); x.textAlign = 'left';
+  x.font = '400 300px Anton'; const sw = x.measureText(score).width; lgBig(x, score, TP.cx - sw / 2, 800, 300, d.loss ? LG_THEMES.loss : LG_THEMES.win);
+  if (d.sets.length) tpTiles(x, d.sets.map(([a, b], k) => [`${a}–${b}`, `SET ${k + 1}`]), 845, 105, k => d.sets[k][0] > d.sets[k][1]);
+  // Opponent, strip, top performers
+  const opp = `${d.away ? '@' : 'VS'} ${d.opponent}`.toUpperCase(); tpPrint(x, opp, TP.cx, 1092, tpSize(x, opp, TP.w, 92), TP.ink);
+  x.font = '800 18px Inter'; x.fillStyle = '#fff'; lgTracked(x, `${d.date} · ${d.place}${d.record ? ' · RECORD ' + d.record : ''}`.toUpperCase(), TP.cx, 1149, 4, 'center');
+  const L = d.leaders.slice(0, 3);
+  if (L.length) {
+    const PW = 590, colW = PW / L.length;   // the lower paper narrows toward its torn bottom edge
+    L.forEach((l, k) => {
+      const cx = TP.cx - PW / 2 + colW * (k + .5);
+      tpPrint(x, l.cat.toUpperCase(), cx, 1196, 18, TP.green, {font: 'Inter', weight: 800, spacing: 4, distress: false, alpha: 1});
+      tpPrint(x, String(l.value), cx, 1262, 64, TP.ink);
+      tpPrint(x, l.name.toUpperCase(), cx, 1298, tpSize(x, l.name.toUpperCase(), colW - 26, 26), TP.ink, {distress: false, alpha: .9});
+    });
+  }
+  tpPrint(x, 'AUKSVB.COM', TP.cx, 1324, 14, TP.green, {font: 'Inter', weight: 800, spacing: 5, distress: false, alpha: .8});
+  return c;
+}
+
+async function playerTpl(d) {
+  const t = await tplCanvas('player'); if (!t) return null; const {c, x} = t;
+  tpPrint(x, d.kicker || 'ARCHMERE VOLLEYBALL', TP.cx, 168, 24, TP.green, {font: 'Inter', weight: 800, spacing: 6, distress: false, alpha: 1});
+  if (d.first) tpPrint(x, d.first.toUpperCase(), TP.cx, 228, tpSize(x, d.first.toUpperCase(), TP.w, 56), TP.green);
+  const last = d.last.toUpperCase(); tpPrint(x, last, TP.cx, d.first ? 335 : 320, tpSize(x, last, TP.w, d.first ? 112 : 150), TP.ink);
+  // Centre: the big number (jersey / initials, or the stat for a match leader), a line under it, then tiles
+  x.font = `400 ${d.bigSize || 330}px Anton`; const bw = x.measureText(d.big).width;
+  lgBig(x, d.big, TP.cx - bw / 2 - (d.script ? 70 : 0), 690, d.bigSize || 330);
+  if (d.script) { lgFit(x, d.script, 340, 110, s => `400 ${s}px Yellowtail`); x.save(); x.translate(TP.cx + bw / 2 - 110, 670); x.rotate(-.14); x.fillStyle = LG.ink; x.fillText(d.script, 5, 7); x.fillStyle = '#fff'; x.fillText(d.script, 0, 0); x.restore(); }
+  x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, d.sub.toUpperCase(), TP.cx, 752, 5, 'center');
+  if (d.tiles && d.tiles.length) { tpTiles(x, d.tiles, 800, 120, k => k === d.hi); x.font = '800 15px Inter'; x.fillStyle = 'rgba(214,239,220,.7)'; lgTracked(x, d.tilesLabel, TP.cx, 950, 6, 'center'); }
+  // Bottom paper: honors or the game line
+  let y = 1040;
+  if (d.lines.length) {
+    tpPrint(x, d.linesTitle, TP.cx, y, 20, TP.green, {font: 'Inter', weight: 800, spacing: 6, distress: false, alpha: 1}); y += 22;
+    for (const [what, when] of d.lines.slice(0, 3)) {
+      x.fillStyle = 'rgba(21,25,26,.25)'; x.fillRect(TP.cx - TP.w / 2, y, TP.w, 2); y += 60;
+      x.font = '400 34px Anton'; const ww = when ? x.measureText(when).width : 0;
+      tpPrint(x, what, TP.cx - TP.w / 2, y - 12, tpSize(x, what, TP.w - ww - 30, 44), TP.ink, {align: 'left'});
+      if (when) tpPrint(x, when, TP.cx + TP.w / 2, y - 12, 34, TP.green, {align: 'right'});
+    }
+  } else tpPrint(x, 'ARCHMERE VOLLEYBALL', TP.cx, 1150, tpSize(x, 'ARCHMERE VOLLEYBALL', TP.w, 80), TP.ink);
+  tpPrint(x, 'CLAYMONT, DELAWARE  ·  AUKSVB.COM', TP.cx, 1312, 17, TP.green, {font: 'Inter', weight: 800, spacing: 5, distress: false, alpha: .9});
+  return c;
+}
