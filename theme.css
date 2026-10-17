@@ -636,30 +636,45 @@ html:has(.leader-modal[open]){overflow:hidden}
 .leader-modal[open]{animation:lm-in .22s ease-out}
 @keyframes lm-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.leader-modal[open]{animation:none}}
-.lm-card{position:relative;isolation:isolate;overflow:hidden;padding:22px 22px 20px;background:var(--green);color:#fff}
-.lm-card:before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(circle,#0000003a 1.3px,transparent 1.7px) 0 0/7px 7px;-webkit-mask-image:linear-gradient(115deg,transparent 20%,#000 85%);mask-image:linear-gradient(115deg,transparent 20%,#000 85%)}
-.lm-card:after{content:attr(data-word);position:absolute;z-index:-1;right:-6%;bottom:-8%;font:400 150px/.8 var(--display);text-transform:uppercase;white-space:nowrap;color:transparent;-webkit-text-stroke:1.5px #ffffff2b;pointer-events:none}
-.lm-close{position:absolute;top:10px;right:10px;width:36px;height:36px;border:0;border-radius:50%;background:#0000002e;color:#fff;font:400 24px/1 var(--body);cursor:pointer}
-.lm-close:hover{background:#00000055}
-.lm-kicker{display:block;font:700 11px var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--mint)}
-.lm-big{display:flex;align-items:baseline;gap:10px;margin-top:8px}
-.lm-big strong{font:400 112px/.85 var(--display);background:linear-gradient(180deg,#fff 55%,#bfe8c9);-webkit-background-clip:text;background-clip:text;color:transparent;padding-top:.08em}
-.lm-big span{font:400 26px/1 var(--display);text-transform:uppercase;color:var(--mint)}
-.lm-name{margin:10px 0 0;font:400 34px/.95 var(--display);text-transform:uppercase;letter-spacing:.01em;color:#fff;overflow-wrap:anywhere}
-.lm-meta{margin:8px 0 0;font:700 11px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--mint)}
-.lm-game{margin:14px 0 0;padding-top:12px;border-top:1px solid #ffffff2e;font:500 13px var(--body);color:#e6f3e9}
-.lm-game b{color:#fff}
-.lm-body{padding:16px 18px 18px}
+/* The graphic borrows from the team's Instagram: kelly green + grain, a white tab on the top edge,
+   hollow wide-tracked wordmark, giant white number with an ink outline and hard drop shadow,
+   Yellowtail script slashed across it, condensed game tag, and a torn-paper edge into the stats. */
+.lm-post{position:relative;isolation:isolate;overflow:hidden;padding:30px 22px 34px;background:var(--green);color:#fff}
+.lm-post:before{content:'';position:absolute;inset:0;z-index:-1;background:url('paper-grain.svg');opacity:.22;mix-blend-mode:overlay}
+.lm-post:after{content:'';position:absolute;z-index:-1;left:0;right:0;top:44%;height:58px;background:var(--green-deep);border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:skewY(-4deg)}
+.lm-tab{position:absolute;top:0;left:50%;width:84px;height:10px;margin-left:-42px;background:#fff}
+.lm-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border:0;border-radius:50%;background:#0000003d;color:#fff;font:400 24px/1 var(--body);cursor:pointer;z-index:2}
+.lm-close:hover{background:#00000066}
+.lm-brand{margin:0;font:400 13px/1 var(--display);letter-spacing:.42em;text-transform:uppercase;color:transparent;-webkit-text-stroke:1px #ffffffd9}
+.lm-hero{position:relative;margin:14px 0 6px;text-align:center}
+.lm-num{display:block;font:400 168px/.86 var(--display);color:#fff;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:7px 7px 0 var(--ink);letter-spacing:.01em}
+.lm-script{position:absolute;right:4%;bottom:-6px;font:400 58px/1 var(--script);color:#fff;text-shadow:2px 3px 0 var(--ink);transform:rotate(-9deg);white-space:nowrap}
+.lm-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:22px;padding-right:58px}
+.lm-kicker{display:block;font:700 10px var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--mint)}
+.lm-name{margin:4px 0 0;font:400 40px/.88 var(--display);text-transform:uppercase;color:#fff;overflow-wrap:anywhere}
+.lm-name small{display:block;font:400 18px/1 var(--display);letter-spacing:.06em;color:var(--mint);margin-bottom:2px}
+.lm-meta{display:block;margin-top:7px;font:700 10px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--mint)}
+.lm-tag{flex:0 0 auto;max-width:44%;text-align:right;font:400 13px/1.15 var(--display);text-transform:uppercase;letter-spacing:.04em;color:#fff}
+.lm-tag b{display:block;font-weight:400;font-size:20px;color:#fff}
+.lm-tag span{display:block;color:var(--mint)}
+.lm-logo{position:absolute;right:16px;bottom:16px;width:44px;height:auto;opacity:.95}
+.lm-body{position:relative;margin-top:-12px;padding:26px 18px 18px;background:var(--card);clip-path:polygon(0 0,3.8% 10px,7.7% 4px,11.5% 6px,15.4% 2px,19.2% 11px,23.1% 0,26.9% 7px,30.8% 4px,34.6% 3px,38.5% 2px,42.3% 8px,46.2% 0,50% 4px,53.8% 4px,57.7% 9px,61.5% 2px,65.4% 5px,69.2% 0,73.1% 10px,76.9% 4px,80.8% 6px,84.6% 2px,88.5% 11px,92.3% 0,96.2% 7px,100% 4px,100% 100%,0 100%)}
+@media(max-width:360px){.lm-post{padding:28px 16px 30px}.lm-num{font-size:138px}.lm-script{font-size:48px}.lm-name{font-size:32px}.lm-foot{padding-right:50px}.lm-logo{width:38px}.lm-body{padding:24px 14px 14px}}
+/* Match-leader dialog: stat strip + actions under the torn edge */
 .lm-who{display:block;margin:4px 0 6px;font:700 13px var(--body)}
 .lm-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
 .lm-strip+.lm-who{margin-top:14px}
 .lm-strip div{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 8px;border:1px solid var(--line);border-radius:10px;background:#f8faf7}
 .lm-strip strong{font:600 26px/1 'Barlow Condensed',sans-serif;color:var(--ink)}
 .lm-strip span{font:700 10px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.lm-strip .is-lead{background:var(--green);border-color:var(--green)}
+.lm-strip .is-lead{background:var(--ink);border-color:var(--ink)}
 .lm-strip .is-lead :is(strong,span){color:#fff}
 .lm-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:16px}
 .lm-actions a{font:700 14px var(--body);color:var(--green);text-decoration:none}
 .lm-actions a:hover{text-decoration:underline}
 .lm-actions button{margin-left:auto;padding:9px 16px;border:1px solid var(--line);border-radius:999px;background:var(--card);font:600 13px var(--body);color:var(--ink-2);cursor:pointer}
-@media(max-width:360px){.lm-card{padding:18px 16px 16px}.lm-big strong{font-size:92px}.lm-name{font-size:28px}.lm-body{padding:14px}}
+.lm-brand{padding-right:46px}
+.lm-who-block{min-width:0}
+.lm-name{overflow-wrap:break-word}
+.lm-name.is-tie{font-size:30px;line-height:.92}
+@media(max-width:360px){.lm-brand{letter-spacing:.3em;font-size:12px}.lm-name.is-tie{font-size:26px}}
