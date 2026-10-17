@@ -773,7 +773,7 @@ document.addEventListener('click', e => {
 const TPL = {gameday: 'brand/tpl-gameday-v1.webp', final: 'brand/tpl-final-v1.webp', player: 'brand/tpl-player-v1.webp'};
 const TP = {cx: 545, w: 700, ink: '#15191a', green: '#0f6b3a', cream: '#f3ead9'};
 async function tplCanvas(name) {
-  const [img] = await Promise.all([lgLoadImg(TPL[name]), lgFonts(), lgLoadLogo()]);
+  const [img] = await Promise.all([lgLoadImg(TPL[name]), lgFonts(), lgLoadLogo(), tpPaper()]);
   if (!img) return null;
   const c = document.createElement('canvas'); c.width = LG.w; c.height = LG.h; const x = c.getContext('2d');
   x.drawImage(img, 0, 0, LG.w, LG.h); return {c, x};
@@ -800,9 +800,11 @@ function tpPrint(x, text, px, base, size, color, o = {}) {
 // Green tape tag with white type (e.g. "VS", "IN 3 DAYS")
 function tpTag(x, text, cx, cy, size, rot = -.05) {
   x.font = `400 ${size}px Anton`; const tw = x.measureText(text).width, w = tw + size * .9, h = size * 1.25;
-  x.save(); x.translate(cx, cy); x.rotate(rot); x.fillStyle = TP.green; x.beginPath();
-  x.moveTo(-w / 2, -h / 2); for (let i = 0; i <= 8; i++) x.lineTo(-w / 2 + w * i / 8, -h / 2 + (i % 2 ? 3 : -2)); x.lineTo(w / 2, h / 2); for (let i = 8; i >= 0; i--) x.lineTo(-w / 2 + w * i / 8, h / 2 + (i % 2 ? -3 : 2)); x.closePath(); x.fill();
-  x.fillStyle = '#fff'; x.textAlign = 'center'; x.fillText(text, 0, size * .36); x.textAlign = 'left'; x.restore();
+  tpStamp(x, w + 8, h + 10, cx, cy, rot, g => {
+    g.fillStyle = TP.green; g.beginPath();
+    g.moveTo(-w / 2, -h / 2); for (let i = 0; i <= 8; i++) g.lineTo(-w / 2 + w * i / 8, -h / 2 + (i % 2 ? 3 : -2)); g.lineTo(w / 2, h / 2); for (let i = 8; i >= 0; i--) g.lineTo(-w / 2 + w * i / 8, h / 2 + (i % 2 ? -3 : 2)); g.closePath(); g.fill();
+    g.font = `400 ${size}px Anton`; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(text, 0, size * .36);
+  }, text, {grain: 1.6});
 }
 const tpHeader = (x, y, line = 'ARCHMERE ACADEMY') => {
   const s = tpSize(x, line, 520, 40); tpPrint(x, line, TP.cx, y, s, TP.green, {spacing: 4, distress: false, alpha: 1});
@@ -827,17 +829,17 @@ async function gamedayTpl(d) {
   const head = d.days === 0 ? 'GAME DAY' : d.days === 1 ? 'TOMORROW' : 'NEXT UP';
   tpPrint(x, head, TP.cx, 430, tpSize(x, head, TP.w, 230), TP.ink);
   if (d.days > 0) tpTag(x, d.days === 1 ? '1 DAY TO GO' : `${d.days} DAYS TO GO`, TP.cx - 150, 472, 30, -.05);
-  if (ours) { const w = 150, h = w * ours.height / ours.width; x.drawImage(ours, 820, 380, w, h); }
+  if (ours) { const w = 150, h = w * ours.height / ours.width; tpStamp(x, w, h, 820 + w / 2, 380 + h / 2, 0, g => g.drawImage(ours, -w / 2, -h / 2, w, h), 'corner', {grain: 1.4}); }
   // Centre: the matchup
   const tagged = d.theme || d.senior, ty = tagged ? 640 : 690, ts = tagged ? 180 : 200, paper = await tpPaper();
   for (const [img, cx, rot] of [[ours, TP.cx - 170, -.04], [theirs, TP.cx + 170, .035]]) {
     tpChip(x, paper, cx, ty, ts, ts, rot, d.opponent + cx, null);
-    if (img) { const pad = ts * .16, w = ts - pad * 2, k = Math.min(w / img.width, w / img.height); x.save(); x.translate(cx, ty); x.rotate(rot); x.globalCompositeOperation = 'multiply'; x.drawImage(img, -img.width * k / 2, -img.height * k / 2, img.width * k, img.height * k); x.restore(); }
+    if (img) { const pad = ts * .16, w = ts - pad * 2, k = Math.min(w / img.width, w / img.height), iw = img.width * k, ih = img.height * k; tpStamp(x, iw, ih, cx, ty, rot, g => g.drawImage(img, -iw / 2, -ih / 2, iw, ih), d.opponent + cx, {grain: 0, blend: 'multiply'}); }
   }
-  x.textAlign = 'center'; x.font = '400 64px Anton'; x.fillStyle = LG.mint; x.fillText(d.away ? '@' : 'VS', TP.cx, ty + 22); x.textAlign = 'left';
+  tpStamp(x, 110, 80, TP.cx, ty, 0, g => { g.textAlign = 'center'; g.font = '400 64px Anton'; g.fillStyle = LG.mint; g.fillText(d.away ? '@' : 'VS', 0, 22); }, 'vs', {grain: 1.6});
   // Theme and Senior Night stickers, side by side when a game has both
   const stks = (await Promise.all([d.theme && stickerSrc(d.theme), d.senior && stickerSrc('Senior Night')].filter(Boolean).map(lgLoadImg))).filter(Boolean);
-  stks.forEach((stk, i) => { const sx = TP.cx + (stks.length > 1 ? (i ? 92 : -92) : 0); x.save(); x.translate(sx, 895); x.rotate(i ? .06 : -.07); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 18; x.shadowOffsetY = 8; x.drawImage(stk, -80, -80, 160, 160); x.restore(); });
+  stks.forEach((stk, i) => tpStamp(x, 160, 160, TP.cx + (stks.length > 1 ? (i ? 92 : -92) : 0), 895, i ? .06 : -.07, g => g.drawImage(stk, -80, -80, 160, 160), 'stk' + i, {grain: 1.3, shadow: true}));
   if (!stks.length) { x.font = '800 22px Inter'; x.fillStyle = 'rgba(214,239,220,.75)'; lgTracked(x, d.away ? 'ON THE ROAD' : 'AT ARCHMERE', TP.cx, 880, 6, 'center'); }
   // Opponent, the green strip, then when and where
   const opp = d.opponent.toUpperCase(); tpPrint(x, opp, TP.cx + 30, 1092, tpSize(x, opp, TP.w - 110, 92), TP.ink);
@@ -883,7 +885,7 @@ async function playerTpl(d) {
   // Centre: the big number (jersey / initials, or the stat for a match leader), a line under it, then tiles
   const paper = await tpPaper(); x.font = `400 ${d.bigSize || 330}px Anton`; const bw = x.measureText(d.big).width;
   tpCutout(x, paper, d.big, TP.cx - (d.script ? 70 : 0), 690, d.bigSize || 330, d.last + d.big);
-  if (d.script) { lgFit(x, d.script, 340, 110, s => `400 ${s}px Yellowtail`); x.save(); x.translate(TP.cx + bw / 2 - 110, 670); x.rotate(-.14); x.fillStyle = LG.ink; x.fillText(d.script, 5, 7); x.fillStyle = '#fff'; x.fillText(d.script, 0, 0); x.restore(); }
+  if (d.script) { lgFit(x, d.script, 340, 110, s => `400 ${s}px Yellowtail`); const sf = x.font, sw = x.measureText(d.script).width + 30; tpStamp(x, sw, 170, TP.cx + bw / 2 - 110 + sw / 2 - 15, 650, -.14, g => { g.font = sf; g.fillStyle = LG.ink; g.fillText(d.script, -sw / 2 + 20, 27); g.fillStyle = '#fff'; g.fillText(d.script, -sw / 2 + 15, 20); }, d.script, {grain: 1.6}); }
   x.font = '800 22px Inter'; x.fillStyle = LG.mint; lgTracked(x, d.sub.toUpperCase(), TP.cx, 752, 5, 'center');
   if (d.tiles && d.tiles.length) { tpChips(x, paper, d.tiles, 862, 108, k => k === d.hi ? 'green' : 'white', d.last); x.font = '800 15px Inter'; x.fillStyle = 'rgba(214,239,220,.7)'; lgTracked(x, d.tilesLabel, TP.cx, 952, 6, 'center'); }
   // Bottom paper: honors or the game line
@@ -993,3 +995,29 @@ function notePill(s, textOnly) {
 }
 // Stickers that sit inline after the opponent name on schedule and Next up cards
 const cardStickers = s => { const h = (isSenior(s) ? `<img class="theme-sticker inline event" src="${stickerSrc('Senior Night')}" alt="Senior Night" title="Senior Night" width="64" height="64" decoding="async">` : '') + themeSticker(themeFor(s), 'inline'); return h ? `<span class="stk">${h}</span>` : ''; };
+
+// Stamp: draw an element on its own layer (origin at its centre), wear it like the collage print, then lay it down.
+// Wear = the template's paper grain multiplied in (grain > 1 pushes the grain contrast), light speckle and a few scuffs.
+function tpStamp(x, w, h, cx, cy, rot, draw, seed, o = {}) {
+  const pad = 4, L = document.createElement('canvas'); L.width = Math.ceil(w + pad * 2); L.height = Math.ceil(h + pad * 2);
+  const g = L.getContext('2d'); g.save(); g.translate(L.width / 2, L.height / 2); draw(g); g.restore();
+  tpWear(L, tpPaperC, String(seed), o);
+  x.save(); x.translate(cx, cy); x.rotate(rot);
+  if (o.blend) x.globalCompositeOperation = o.blend;
+  if (o.shadow) { x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 18; x.shadowOffsetY = 8; }
+  x.drawImage(L, -L.width / 2, -L.height / 2); x.restore();
+}
+function tpWear(L, paper, seed, o = {}) {
+  const w = L.width, h = L.height, g = L.getContext('2d'), r = lgRand(seed);
+  if (paper && o.grain !== 0) {
+    const M = document.createElement('canvas'); M.width = w; M.height = h; M.getContext('2d').drawImage(L, 0, 0);
+    const sw = Math.min(w, paper.width), sh = Math.min(h, paper.height);
+    g.save(); g.globalCompositeOperation = 'multiply'; g.filter = `contrast(${(o.grain || 1) * 2.2}) brightness(.97)`;
+    g.drawImage(paper, r() * (paper.width - sw), r() * (paper.height - sh), sw, sh, 0, 0, w, h); g.restore();
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(M, 0, 0);
+  }
+  g.globalCompositeOperation = 'destination-out';
+  for (let i = 0, n = Math.round(w * h * (o.speckle ?? .0032)); i < n; i++) { g.globalAlpha = .25 + r() * .6; g.beginPath(); g.arc(r() * w, r() * h, .5 + r() * 2, 0, 7); g.fill(); }
+  for (let i = 0, n = o.scuffs ?? Math.max(1, Math.round(w * h / 9000)); i < n; i++) { g.globalAlpha = .4; g.fillRect(r() * w, r() * h, 8 + r() * w * .25, 1 + r() * 1.5); }
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; return L;
+}
