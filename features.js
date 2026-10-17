@@ -126,7 +126,9 @@ function stateTitles() {
   const row = t => { const g = t.game && D.games.find(x => x.id === t.game), href = g ? route('game', {id: g.id}) : t.url, ext = g ? '' : ' target="_blank" rel="noopener noreferrer"';
     return `<a class="row ms-row" href="${esc(href)}"${ext}><span class="ms-left"><b>${esc(t.year)}</b></span><span class="what"><b>DIAA State Champions</b><small>${esc(t.detail || '')}</small></span><span class="ms-cat">${g ? 'Final' : 'DIAA ↗'}</span></a>`; };
   const finalsRow = finals.length ? `<div class="row ms-row st-finals"><span class="ms-left"><b>${finals.length}</b><span>finals</span></span><span class="what"><b>State runner-up</b><small>${finals.map(g => `<a href="${route('game', {id: g.id})}">${g.season}</a>`).join(' · ')}</small></span></div>` : '';
-  return `<section class="block state-titles"><div class="sec-head"><h2>State champions</h2></div><div class="list">${titles.map(row).join('')}${finalsRow}</div></section>`;
+  const art = titles.filter(t => t.banner).sort((a, b) => a.year - b.year);
+  const rafters = art.length ? `<div class="rafters" role="list" aria-label="State championship banners">${art.map((t, k) => `<figure class="rafter-banner" role="listitem" style="--k:${k}"><img src="${esc(t.banner)}" alt="${esc(t.year)} DIAA girls volleyball state champions banner" width="600" height="835" decoding="async"></figure>`).join('')}</div>` : '';
+  return `<section class="block state-titles"><div class="sec-head"><h2>State champions</h2></div>${rafters}<div class="list">${titles.map(row).join('')}${finalsRow}</div></section>`;
 }
 const AWARD_TYPES = {'All-State': a => /all-state/i.test(a.award), 'All-Conference': a => /all-conference/i.test(a.award), 'Other honors': a => !/all-state|all-conference/i.test(a.award)};
 function awardsPage(q) {
@@ -471,3 +473,31 @@ function scheduleCalendar(list, isUp, off, today) {
     return `<h2 class="month">${label}<span>${inMonth.filter(s => s.kind === 'Match').length} matches${w + l ? ` · ${w}–${l}` : ''}</span></h2><div class="cal" role="group" aria-label="${label}"><div class="cal-head" aria-hidden="true">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<span><b>${d}</b><i>${d[0]}</i></span>`).join('')}</div><div class="cal-grid">${cells}</div></div>`;
   }).join('') + '<p class="cal-key"><span class="k win">W</span><span class="k loss">L</span> Tap a result for the postgame graphic · Tap an upcoming game for the head-to-head</p>';
 }
+
+/* ---------- Rafter banners: drop and swing in when scrolled into view, then sway with scroll speed ---------- */
+(() => {
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  let live = new Set(), lastY = scrollY, lastT = performance.now(), raf = 0, rest = 0;
+  const show = el => { el.classList.add('is-in'); live.add(el); };
+  // In view = at least a quarter of the rafter row on screen. Checked directly too: on first load the observer's
+  // initial report can arrive before layout and never repeat.
+  const inView = el => { const b = el.getBoundingClientRect(), h = Math.max(1, b.height); return b.bottom - h * .25 > 0 && b.top + h * .25 < innerHeight; };
+  const io = 'IntersectionObserver' in window && new IntersectionObserver(entries => {
+    for (const e of entries) e.isIntersecting ? show(e.target) : live.delete(e.target);
+  }, {threshold: 0.25});
+  const check = () => document.querySelectorAll('.rafters.will-drop:not(.is-in)').forEach(el => inView(el) && show(el));
+  const sway = () => {
+    raf = 0; const now = performance.now(), dt = Math.max(16, now - lastT), v = (scrollY - lastY) / dt; lastY = scrollY; lastT = now;
+    const deg = Math.max(-7, Math.min(7, v * 9));
+    for (const el of live) el.style.setProperty('--sway', deg.toFixed(2) + 'deg');
+    clearTimeout(rest); rest = setTimeout(() => { for (const el of live) el.style.setProperty('--sway', '0deg'); }, 120);
+  };
+  addEventListener('scroll', () => { check(); if (live.size && !still.matches && !raf) raf = requestAnimationFrame(sway); }, {passive: true});
+  const arm = () => document.querySelectorAll('.rafters:not(.armed)').forEach(r => {
+    r.classList.add('armed');
+    if (!io || still.matches) { r.classList.add('is-in'); return; }
+    r.classList.add('will-drop'); io.observe(r); requestAnimationFrame(() => requestAnimationFrame(check)); setTimeout(check, 400);
+  });
+  new MutationObserver(arm).observe(document.getElementById('main'), {childList: true, subtree: true});
+  arm();
+})();
