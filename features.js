@@ -88,27 +88,53 @@ function milestonesBlock() {
 }
 const playerMilestones = name => milestones(name).map(m => `<span class="ms-chip"><b>${fmt(m.left)}</b> ${m.cat.toLowerCase()} from ${fmt(m.next)} career${m.rank <= 10 ? ` · ${ordinal(m.rank)} all-time` : ''}</span>`).join('');
 
-/* ---------- Honors (dist/awards.json, kept outside data.json so updater refreshes never drop it) ---------- */
-let AWARDS = {};
+/* ---------- Honors & college (dist/awards.json, kept outside data.json so updater refreshes never drop it) ---------- */
+let AWARDS = {}, COLLEGE = {};
 fetch('awards.json').then(r => r.ok ? r.json() : {}).then(a => {
-  AWARDS = a.players || {};
+  AWARDS = a.players || {}; COLLEGE = a.college || {};
   if (D) render(false);
 }).catch(() => {});
-// Newest season first; within a season, state honors before conference, then everything else, college last
-const HONOR_ORDER = [/player of the year|hall of fame/i, /all-state/i, /all-america/i, /all-conference/i, /committed|signed|played at/i];
-const honorRank = a => { const i = HONOR_ORDER.findIndex(re => re.test(a.award)); return i < 0 ? 3.5 : i; }; // unlisted honors sit between conference and college
-const honorsFor = name => (AWARDS[name] || []).slice().sort((a, b) => (b.year || 0) - (a.year || 0) || honorRank(a) - honorRank(b));
+// Newest season first; within a season, state honors before all-america, conference, then everything else
+const HONOR_ORDER = [/player of the year|hall of fame/i, /all-state/i, /all-america/i, /all-conference/i];
+const honorRank = a => { const i = HONOR_ORDER.findIndex(re => re.test(a.award)); return i < 0 ? HONOR_ORDER.length : i; };
+const byHonor = (a, b) => (b.year || 0) - (a.year || 0) || honorRank(a) - honorRank(b);
+const honorsFor = name => (AWARDS[name] || []).slice().sort(byHonor);
 // Hero chips: the headline honors only (Hall of Fame, All-State, All-Conference), counted by season
 const HONOR_TIERS = [['Hall of Fame', /hall of fame/i], ['All-State', /all-state/i], ['All-Conference', /all-conference/i]];
+const honorCount = (list, re) => { const hits = list.filter(a => re.test(a.award)); return new Set(hits.filter(a => a.year).map(a => a.year)).size + hits.filter(a => !a.year).reduce((n, a) => n + (parseInt(a.award) || 1), 0); };
 const honorChips = name => {
   const list = honorsFor(name);
-  return HONOR_TIERS.map(([label, re]) => { const hits = list.filter(a => re.test(a.award)); return [label, new Set(hits.filter(a => a.year).map(a => a.year)).size + hits.filter(a => !a.year).reduce((n, a) => n + (parseInt(a.award) || 1), 0)]; }).filter(([, n]) => n).slice(0, 2)
+  return HONOR_TIERS.map(([label, re]) => [label, honorCount(list, re)]).filter(([, n]) => n).slice(0, 2)
     .map(([label, n]) => `<span class="ms-chip honor-chip"><i aria-hidden="true">★</i>${n > 1 ? `<b>${n}×</b> ` : ''}${label}</span>`).join('');
 };
+const srcLink = (url, label) => url ? `<a class="h-src" href="${esc(url)}" target="_blank" rel="noopener noreferrer" aria-label="Source for ${esc(label)}"><span>Source</span> ↗</a>` : '';
 function playerHonors(name) {
   const list = honorsFor(name); if (!list.length) return '';
-  return `<section class="player-honors" aria-label="Honors"><h2>Honors</h2><ul class="honor-list">${list.map((a, i) => `<li><span class="h-year${i && list[i - 1].year === a.year ? ' same' : ''}">${a.year ? esc(a.year) : '—'}</span><span class="h-what"><b>${esc(a.award)}</b><small>${esc(a.org)}</small></span>${a.url ? `<a class="h-src" href="${esc(a.url)}" target="_blank" rel="noopener noreferrer" aria-label="Source for ${esc(a.award)}"><span>Source</span> ↗</a>` : ''}</li>`).join('')}</ul></section>`;
+  return `<section class="player-honors" aria-label="Honors"><h2>Honors</h2><ul class="honor-list">${list.map((a, i) => `<li><span class="h-year${i && list[i - 1].year === a.year ? ' same' : ''}">${a.year ? esc(a.year) : '—'}</span><span class="h-what"><b>${esc(a.award)}</b><small>${esc(a.org)}</small></span>${srcLink(a.url, a.award)}</li>`).join('')}</ul></section>`;
 }
+// College volleyball: its own line in the player hero, not an Archmere honor
+const collegeVerb = c => c.status === 'Played' ? 'Played at' : c.status === 'Committed' ? 'Committed to' : 'Signed with';
+function playerCollege(name) {
+  const c = COLLEGE[name]; if (!c) return '';
+  return `<a class="hero-college" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer"><span>College volleyball</span><b>${esc(c.school)}</b><small>${collegeVerb(c).split(' ')[0]}${c.year ? ' ' + esc(c.year) : ''} ↗</small></a>`;
+}
+
+/* ---------- Awards page: every honor by season, then college volleyball ---------- */
+const AWARD_TYPES = {'All-State': a => /all-state/i.test(a.award), 'All-Conference': a => /all-conference/i.test(a.award), 'Other honors': a => !/all-state|all-conference/i.test(a.award)};
+function awardsPage(q) {
+  const type = AWARD_TYPES[q.get('type')] ? q.get('type') : '';
+  const all = Object.entries(AWARDS).flatMap(([name, list]) => list.map(a => ({...a, name}))).filter(a => !type || AWARD_TYPES[type](a));
+  const players = new Set(all.map(a => a.name)).size;
+  const years = [...new Set(all.map(a => a.year || 0))].sort((a, b) => b - a);
+  const classTag = name => { const p = pByName(name); return p && p.year !== 'Unknown' ? `<span class="ms-cat">’${String(p.year).slice(2)}</span>` : ''; };
+  const season = y => {
+    const rows = all.filter(a => (a.year || 0) === y).sort(byHonor), names = [...new Set(rows.map(a => a.name))];
+    return `<section class="block"><div class="sec-head"><h2>${y || 'Year not listed'}</h2>${y && D.games.some(g => g.season === y) ? `<a href="${route('season', {year: y})}">Season →</a>` : ''}</div><div class="list">${names.map(n => `<a class="row award-row" href="${pLink(n)}"><span class="what"><b>${esc(n)}</b><small>${rows.filter(a => a.name === n).map(a => esc(a.award)).join(' · ')}</small></span>${classTag(n)}</a>`).join('')}</div></section>`;
+  };
+  const college = Object.entries(COLLEGE).sort((a, b) => (b[1].year || 0) - (a[1].year || 0) || a[0].localeCompare(b[0]));
+  return `<div class="awards-page"><div class="archive-poster"><div><div class="eyebrow">THE AUKS / HONOR ROLL</div><h1>Awards</h1><p>All-State, all-conference and more, earned in an Archmere uniform.<br>Tap a name for each honor and its source.</p></div><span class="archive-stamp"><small>HONORS</small><strong>${all.length}</strong></span></div><div class="tools">${select('Award type', 'type', Object.keys(AWARD_TYPES), type, 'All awards')}</div><p class="count">${all.length} ${all.length === 1 ? 'honor' : 'honors'} · ${players} ${players === 1 ? 'player' : 'players'}</p>${years.map(season).join('')}${!all.length ? '<p class="empty">No honors of this type on file yet.</p>' : ''}${!type && college.length ? `<section class="block"><div class="sec-head"><h2>College volleyball</h2><span class="quiet">${college.length} players</span></div><div class="list">${college.map(([name, c]) => `<a class="row award-row" href="${pLink(name)}"><span class="what"><b>${esc(name)}</b><small>${collegeVerb(c)} ${esc(c.school)}${c.year ? ' · ' + esc(c.year) : ''}</small></span>${classTag(name)}</a>`).join('')}</div></section>` : ''}<p class="record-context">Honors come from Archmere Athletics announcements and Delaware press. Seasons without a published list may be missing honors. <a href="#about">Sources &amp; coverage ↗</a></p></div>`;
+}
+pages.awards = awardsPage;
 
 /* ---------- Head-to-head ---------- */
 function h2h(name) {

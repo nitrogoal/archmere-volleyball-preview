@@ -560,3 +560,14 @@ body .player-honors h2{font:400 34px/1 var(--display);text-transform:uppercase;l
 @media(max-width:760px){body .player-honors{padding-top:20px}body .player-honors h2{font-size:28px;margin-bottom:10px}.honor-list li{padding:9px 12px;gap:10px}.honor-list .h-year{width:40px;font-size:18px}}
 @media(max-width:700px){.honor-list .h-year.same{color:transparent}}
 @media(max-width:420px){.honor-list .h-src{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:var(--light);font-size:13px}.honor-list .h-src span{display:none}.honor-list li{padding:9px 10px 9px 12px}.honor-list .h-year{width:36px}}
+/* College volleyball: its own outlined card in the player hero, apart from the honor chips */
+.hero-college{display:inline-grid;grid-template-columns:auto auto;align-items:baseline;column-gap:10px;margin-top:14px;padding:9px 14px 10px;border:1px solid #ffffff4d;border-radius:12px;color:#fff;text-decoration:none;max-width:100%}
+.hero-college span{grid-column:1/-1;font:700 10px/1.4 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--mint)}
+.hero-college b{font:400 22px/1.1 var(--display);text-transform:uppercase;letter-spacing:.01em;min-width:0}
+.hero-college small{font:600 12px var(--body);color:var(--mint);white-space:nowrap}
+.hero-college:hover{border-color:#fff}
+/* Awards page rows: names and honor lists wrap instead of truncating */
+.award-row .what{min-width:0}
+.award-row .what b,.award-row .what small{white-space:normal;overflow:visible;text-overflow:clip}
+/* Eight tabs plus the store link: tighten tab padding on narrow desktops so the bar never scrolls */
+@media(min-width:761px) and (max-width:900px){body nav#nav>a{padding-left:8px;padding-right:8px}}

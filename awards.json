@@ -1,5 +1,5 @@
 {
- "note": "Player honors shown on player pages. Hand-curated with a source for every entry; the scheduled updater does not touch this file.",
+ "note": "Hand-curated with a source for every entry; the scheduled updater does not touch this file. players = honors earned at Archmere; college = where each player went on to play volleyball.",
  "updated": "2026-10-17",
  "players": {
   "Abigail Garcia": [
@@ -67,12 +67,6 @@
    }
   ],
   "Autumn Richardson-Peters": [
-   {
-    "year": 2024,
-    "award": "Committed to Delaware State University",
-    "org": "Archmere Academy",
-    "url": "https://www.archmereacademy.com/news-detail?pk=1508754"
-   },
    {
     "year": 2023,
     "award": "2nd Team All-Conference",
@@ -166,12 +160,6 @@
   ],
   "Cecilia Connolly": [
    {
-    "year": 2024,
-    "award": "Committed to Franklin & Marshall College",
-    "org": "Archmere Academy",
-    "url": "https://www.archmereacademy.com/news-detail?pk=1508754"
-   },
-   {
     "year": 2023,
     "award": "1st Team All-Conference",
     "org": "Diamond State Conference",
@@ -240,14 +228,6 @@
     "url": "https://www.archmereacademy.com/news-detail?pk=1406998"
    }
   ],
-  "Faith Merritt": [
-   {
-    "year": 2019,
-    "award": "Played at Misericordia University (2019–22)",
-    "org": "College volleyball",
-    "url": "https://athletics.misericordia.edu/sports/mens-soccer/roster/faith-merritt/14054"
-   }
-  ],
   "Gilda (Tori) Mock": [
    {
     "year": 2016,
@@ -284,12 +264,6 @@
     "award": "AVCA Under Armour All-America Watch List",
     "org": "AVCA",
     "url": "https://www.archmereacademy.com/news-detail?pk=1214699"
-   },
-   {
-    "year": 2020,
-    "award": "Signed with University of Delaware",
-    "org": "Archmere Academy",
-    "url": "https://www.archmereacademy.com/news-detail?pk=1241162"
    },
    {
     "year": 2020,
@@ -336,14 +310,6 @@
     "award": "1st Team All-Conference",
     "org": "Diamond State Conference",
     "url": "https://www.archmereacademy.com/news-detail?pk=1249794"
-   }
-  ],
-  "Jade Bryant": [
-   {
-    "year": 2018,
-    "award": "Signed with University of the Sciences",
-    "org": "Archmere Academy",
-    "url": "https://www.archmereacademy.com/news-detail?pk=1049969"
    }
   ],
   "Jessica Lattanzi": [
@@ -404,12 +370,6 @@
     "award": "3rd Team All-State",
     "org": "Delaware coaches’ committee",
     "url": "https://www.archmereacademy.com/news-detail?pk=1478377"
-   },
-   {
-    "year": 2023,
-    "award": "Signed with Bloomsburg University",
-    "org": "Archmere Academy",
-    "url": "https://www.archmereacademy.com/news-detail?pk=1472937"
    },
    {
     "year": 2022,
@@ -492,12 +452,6 @@
   ],
   "Patreece Spence": [
    {
-    "year": 2012,
-    "award": "Signed with James Madison University",
-    "org": "Archmere Academy",
-    "url": "https://www.archmereacademy.com/news-detail?pk=642057"
-   },
-   {
     "year": 2011,
     "award": "1st Team All-State",
     "org": "Delaware coaches’ committee",
@@ -517,12 +471,6 @@
    }
   ],
   "Sarah Donnelly": [
-   {
-    "year": 2014,
-    "award": "Committed to McDaniel College",
-    "org": "Archmere Academy",
-    "url": "https://www.archmereacademy.com/news-detail?pk=723120"
-   },
    {
     "year": null,
     "award": "2× All-Conference",
@@ -546,5 +494,55 @@
     "url": "https://www.archmereacademy.com/news-detail?pk=1042376"
    }
   ]
+ },
+ "college": {
+  "Autumn Richardson-Peters": {
+   "school": "Delaware State University",
+   "status": "Committed",
+   "year": 2024,
+   "url": "https://www.archmereacademy.com/news-detail?pk=1508754"
+  },
+  "Cecilia Connolly": {
+   "school": "Franklin & Marshall College",
+   "status": "Committed",
+   "year": 2024,
+   "url": "https://www.archmereacademy.com/news-detail?pk=1508754"
+  },
+  "Faith Merritt": {
+   "school": "Misericordia University",
+   "status": "Played",
+   "year": 2019,
+   "url": "https://athletics.misericordia.edu/sports/mens-soccer/roster/faith-merritt/14054"
+  },
+  "Hannah Wright": {
+   "school": "University of Delaware",
+   "status": "Signed",
+   "year": 2020,
+   "url": "https://www.archmereacademy.com/news-detail?pk=1241162"
+  },
+  "Jade Bryant": {
+   "school": "University of the Sciences",
+   "status": "Signed",
+   "year": 2018,
+   "url": "https://www.archmereacademy.com/news-detail?pk=1049969"
+  },
+  "Katherine Kuehl": {
+   "school": "Bloomsburg University",
+   "status": "Signed",
+   "year": 2023,
+   "url": "https://www.archmereacademy.com/news-detail?pk=1472937"
+  },
+  "Patreece Spence": {
+   "school": "James Madison University",
+   "status": "Signed",
+   "year": 2012,
+   "url": "https://www.archmereacademy.com/news-detail?pk=642057"
+  },
+  "Sarah Donnelly": {
+   "school": "McDaniel College",
+   "status": "Committed",
+   "year": 2014,
+   "url": "https://www.archmereacademy.com/news-detail?pk=723120"
+  }
  }
 }
