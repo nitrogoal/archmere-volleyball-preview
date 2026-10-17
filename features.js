@@ -490,31 +490,35 @@ function scheduleCalendar(list, isUp, off, today) {
     for (const e of entries) e.isIntersecting ? show(e.target) : live.delete(e.target);
   }, {threshold: 0.25});
   const check = () => document.querySelectorAll('.rafters.will-drop:not(.is-in)').forEach(el => inView(el) && show(el));
-  // One damped pendulum per banner; different stiffness, damping and weight so they never swing in step
-  const FEEL = [{k: 34, c: 2.4, g: 1}, {k: 23, c: 1.8, g: 1.35}, {k: 46, c: 3.1, g: .8}];
+  // One damped pendulum per banner; different stiffness, damping and weight so they swing out of step.
+  // Scroll speed is read once per frame and smoothed, then applied as a steady force, so the motion is the same
+  // whether the device fires a few scroll events (mouse wheel) or dozens (trackpad, phone).
+  const FEEL = [{k: 34, c: 3.4, g: 1}, {k: 24, c: 2.8, g: 1.2}, {k: 46, c: 4.2, g: .85}];
+  const MAX = 4, PUSH = 90, STEP = 1 / 120; // degrees; force per unit of scroll speed; physics step (s)
   const bodies = new Map();
-  let frame = 0, last = 0;
+  let frame = 0, last = 0, lastY = scrollY, speed = 0;
   const body = img => { if (!bodies.has(img)) bodies.set(img, {a: 0, v: 0, ...FEEL[(+img.closest('.rafter-banner')?.style.getPropertyValue('--k') || 0) % FEEL.length]}); return bodies.get(img); };
+  const imgs = () => [...live].flatMap(r => r.classList.contains('settled') ? [...r.querySelectorAll('img')] : []);
   const step = t => {
-    const dt = Math.min(.033, Math.max(.008, (t - last) / 1000)); last = t; let moving = false;
+    const dt = Math.min(.05, Math.max(.001, (t - last) / 1000)); last = t;
+    const y = scrollY, now = (y - lastY) / dt; lastY = y;
+    speed += (now - speed) * Math.min(1, dt * 10);                    // smoothed px/s
+    const drive = Math.max(-1, Math.min(1, speed / 1600));            // -1..1
+    for (const img of imgs()) body(img);
+    let moving = Math.abs(speed) > 4;
     for (const [img, b] of bodies) {
       if (!img.isConnected) { bodies.delete(img); continue; }
-      b.v += (-b.k * b.a - b.c * b.v) * dt; b.a = Math.max(-10, Math.min(10, b.a + b.v * dt));
-      if (Math.abs(b.a) > .02 || Math.abs(b.v) > .05) moving = true;
-      img.style.transform = `rotate(${b.a.toFixed(3)}deg)`;
+      for (let n = Math.ceil(dt / STEP), h = dt / n; n--;) { b.v += (-b.k * b.a - b.c * b.v + drive * PUSH * b.g) * h; b.a += b.v * h; }
+      if (Math.abs(b.a) > .01 || Math.abs(b.v) > .03) moving = true;
+      img.style.transform = `rotate(${(MAX * Math.tanh(b.a / MAX)).toFixed(3)}deg)`;   // soft limit at ±4°
     }
-    frame = moving ? requestAnimationFrame(step) : 0;
+    frame = moving && live.size ? requestAnimationFrame(step) : 0;
+    if (!frame) speed = 0;
   };
-  const kick = (img, push) => { const b = body(img); b.v += push * b.g * (.7 + Math.random() * .6); if (!frame) { last = performance.now(); frame = requestAnimationFrame(step); } };
-  const imgs = () => [...live].flatMap(r => r.classList.contains('settled') ? [...r.querySelectorAll('img')] : []);
-  let lastY = scrollY, lastT = performance.now();
-  addEventListener('scroll', () => {
-    check(); const now = performance.now(), v = (scrollY - lastY) / Math.max(16, now - lastT); lastY = scrollY; lastT = now;
-    if (still.matches || !live.size) return;
-    for (const img of imgs()) kick(img, Math.max(-60, Math.min(60, v * 55)));
-  }, {passive: true});
-  // A light breeze: now and then one banner gets a small nudge
-  setInterval(() => { if (still.matches || document.hidden) return; const list = imgs(); if (list.length && Math.random() < .5) kick(list[Math.floor(Math.random() * list.length)], (Math.random() < .5 ? -1 : 1) * (6 + Math.random() * 8)); }, 2600);
+  const run = () => { if (!frame && !still.matches && live.size) { last = performance.now(); lastY = scrollY; frame = requestAnimationFrame(step); } };
+  addEventListener('scroll', () => { check(); run(); }, {passive: true});
+  // A light breeze: now and then one banner gets a small nudge (about 1°)
+  setInterval(() => { if (still.matches || document.hidden) return; const list = imgs(); if (!list.length || Math.random() < .5) return; const b = body(list[Math.floor(Math.random() * list.length)]); b.v += (Math.random() < .5 ? -1 : 1) * (4 + Math.random() * 3); run(); }, 2800);
   const arm = () => document.querySelectorAll('.rafters:not(.armed)').forEach(r => {
     r.classList.add('armed');
     if (!io || still.matches) { r.classList.add('is-in', 'settled'); return; }
