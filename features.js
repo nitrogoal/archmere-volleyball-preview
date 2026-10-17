@@ -44,8 +44,22 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- Live stream ---------- */
-const replayLink = s => s.streamUrl ? `<a class="replay-link" href="${esc(s.streamUrl)}" target="_blank" rel="noopener noreferrer">▶ Watch replay ↗</a>` : '';
-const liveLink = s => s.streamUrl ? `<a class="live-link" href="${esc(s.streamUrl)}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">●</span> Watch live ↗</a>` : '';
+// Prefer the exact broadcast (found by the updater); fall back to the school's NFHS page
+const streamHref = s => s.nfhsEventUrl || s.streamUrl || '';
+// Verified game recordings (dist/videos.json); free YouTube replays lead, NFHS (subscription) follows
+let VIDEOS = {};
+fetch('videos.json').then(r => r.ok ? r.json() : []).then(list => {
+  for (const v of list) (VIDEOS[`${v.date}|${v.opponent}`] ||= []).push(v);
+  if (D) render(false);
+}).catch(() => {});
+const videosFor = s => VIDEOS[`${s.date}|${s.opponent}`] || [];
+const replayLink = s => {
+  const v = videosFor(s)[0], n = streamHref(s);
+  if (!v && !n) return '';
+  const a = (href, label, cls = '') => `<a class="replay-link ${cls}" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  return (v ? a(v.url, '▶ Watch replay ↗') : '') + (n ? a(n, v ? 'NFHS replay ↗' : '▶ Watch replay ↗', v ? 'alt' : '') : '');
+};
+const liveLink = s => streamHref(s) ? `<a class="live-link" href="${esc(streamHref(s))}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">●</span> Watch live ↗</a>` : '';
 
 /* ---------- Milestones ---------- */
 const STEPS = [250, 500, 750, 1000];
@@ -73,6 +87,28 @@ function milestonesBlock() {
   return `<section class="block"><div class="sec-head"><h2>Milestones in reach</h2><a href="#records">Records →</a></div><div class="list">${list.map(m => `<a class="row ms-row" href="${pLink(m.name)}"><span class="ms-left"><b>${fmt(m.left)}</b><span>to go</span></span><span class="what"><b>${esc(m.name)}</b><small>${fmt(m.v)} career ${m.cat.toLowerCase()} · ${fmt(m.next)} is next${m.rank <= 10 ? ` · ${ordinal(m.rank)} all-time` : ''}</small></span><span class="ms-cat">${m.cat}</span></a>`).join('')}</div></section>`;
 }
 const playerMilestones = name => milestones(name).map(m => `<span class="ms-chip"><b>${fmt(m.left)}</b> ${m.cat.toLowerCase()} from ${fmt(m.next)} career${m.rank <= 10 ? ` · ${ordinal(m.rank)} all-time` : ''}</span>`).join('');
+
+/* ---------- Honors (dist/awards.json, kept outside data.json so updater refreshes never drop it) ---------- */
+let AWARDS = {};
+fetch('awards.json').then(r => r.ok ? r.json() : {}).then(a => {
+  AWARDS = a.players || {};
+  if (D) render(false);
+}).catch(() => {});
+// Newest season first; within a season, state honors before conference, then everything else, college last
+const HONOR_ORDER = [/player of the year|hall of fame/i, /all-state/i, /all-america/i, /all-conference/i, /committed|signed|played at/i];
+const honorRank = a => { const i = HONOR_ORDER.findIndex(re => re.test(a.award)); return i < 0 ? 3.5 : i; }; // unlisted honors sit between conference and college
+const honorsFor = name => (AWARDS[name] || []).slice().sort((a, b) => (b.year || 0) - (a.year || 0) || honorRank(a) - honorRank(b));
+// Hero chips: the headline honors only (Hall of Fame, All-State, All-Conference), counted by season
+const HONOR_TIERS = [['Hall of Fame', /hall of fame/i], ['All-State', /all-state/i], ['All-Conference', /all-conference/i]];
+const honorChips = name => {
+  const list = honorsFor(name);
+  return HONOR_TIERS.map(([label, re]) => { const hits = list.filter(a => re.test(a.award)); return [label, new Set(hits.filter(a => a.year).map(a => a.year)).size + hits.filter(a => !a.year).reduce((n, a) => n + (parseInt(a.award) || 1), 0)]; }).filter(([, n]) => n).slice(0, 2)
+    .map(([label, n]) => `<span class="ms-chip honor-chip"><i aria-hidden="true">★</i>${n > 1 ? `<b>${n}×</b> ` : ''}${label}</span>`).join('');
+};
+function playerHonors(name) {
+  const list = honorsFor(name); if (!list.length) return '';
+  return `<section class="player-honors" aria-label="Honors"><h2>Honors</h2><ul class="honor-list">${list.map((a, i) => `<li><span class="h-year${i && list[i - 1].year === a.year ? ' same' : ''}">${a.year ? esc(a.year) : '—'}</span><span class="h-what"><b>${esc(a.award)}</b><small>${esc(a.org)}</small></span>${a.url ? `<a class="h-src" href="${esc(a.url)}" target="_blank" rel="noopener noreferrer" aria-label="Source for ${esc(a.award)}"><span>Source</span> ↗</a>` : ''}</li>`).join('')}</ul></section>`;
+}
 
 /* ---------- Head-to-head ---------- */
 function h2h(name) {
@@ -119,3 +155,45 @@ document.addEventListener('keydown', e => {
   if (e.key === '/' && !/input|select|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); openSearch(); }
   if (e.key === 'Enter' && e.target.id === 'qs-input') { const a = $('#qs-results a'); if (a) { location.hash = a.getAttribute('href'); closeSearch(); } }
 });
+
+/* ---------- Exact "updated" time ----------
+   The time of the last commit that changed dist/data.json (the updater's publishes and any manual edit). */
+let lastUpdate;
+async function lastDataChange() {
+  if (lastUpdate !== undefined) return lastUpdate;
+  try { const c = JSON.parse(sessionStorage.getItem('auksvb-updated') || 'null'); if (c && Date.now() - c.at < 6e5) return lastUpdate = c.when; } catch {}
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/commits?path=dist/data.json&per_page=1`);
+    const when = r.ok ? (await r.json())[0]?.commit?.committer?.date || null : null;
+    try { sessionStorage.setItem('auksvb-updated', JSON.stringify({at: Date.now(), when})); } catch {}
+    return lastUpdate = when;
+  } catch { return lastUpdate = null; }
+}
+const etStamp = iso => new Date(iso).toLocaleString('en-US', {timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'}) + ' ET';
+function fillUpdated() {
+  lastDataChange().then(when => {
+    if (!when) return; // keep the date-only text already shown
+    for (const el of document.querySelectorAll('[data-updated]')) el.textContent = (el.dataset.prefix ?? (el.closest('footer') ? '' : 'Results ')) + (el.closest('footer') ? 'Updated ' : 'updated ') + etStamp(when);
+  });
+}
+fillUpdated();
+
+/* ---------- Next scheduled check ----------
+   Mirrors the cron lines in .github/workflows/update-from-source.yml (UTC):
+   '7,27,47 20-23,0-5 * * *' and '37 10-19 * * *'. Keep the two in sync. */
+const CHECK_SLOTS = [{minutes: [7, 27, 47], hours: [20, 21, 22, 23, 0, 1, 2, 3, 4, 5]}, {minutes: [37], hours: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}];
+function nextCheck(from = new Date()) {
+  const t = new Date(from); t.setUTCSeconds(0, 0);
+  for (let i = 1; i <= 24 * 60; i++) {
+    const c = new Date(t.getTime() + i * 60000);
+    if (CHECK_SLOTS.some(s => s.hours.includes(c.getUTCHours()) && s.minutes.includes(c.getUTCMinutes()))) return c;
+  }
+  return null;
+}
+function fillNextCheck() {
+  const el = document.querySelector('footer [data-next-check]'); if (!el) return;
+  const n = nextCheck(); if (!n) { el.textContent = ''; return; }
+  const sameDay = n.toLocaleDateString('en-US', {timeZone: 'America/New_York'}) === new Date().toLocaleDateString('en-US', {timeZone: 'America/New_York'});
+  el.textContent = ` · Next check ~${sameDay ? '' : 'tomorrow '}${n.toLocaleTimeString('en-US', {timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit'})} ET`;
+}
+fillNextCheck(); setInterval(fillNextCheck, 60000);

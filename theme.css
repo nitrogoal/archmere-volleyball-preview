@@ -510,3 +510,53 @@ body .chips.section{display:flex;flex-wrap:wrap;gap:4px 22px;margin:14px 0 0;pad
 body .chips.section .chip{min-height:40px;padding:0;margin:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--green);font:600 14px var(--body);display:inline-flex;align-items:center}
 body .chips.section .chip:hover{text-decoration:underline;text-underline-offset:3px;background:none}
 body .chips.section+.player-grid{margin-top:8px}
+/* Records: same identity badges as the Players tab (green jersey number for current players, dark initials for alumni) */
+body .record-ranking .jersey-mark{background:#254b32;width:48px;height:62px;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px}
+body .record-ranking .jersey-mark strong{font-size:37px;line-height:.9}
+body .record-ranking .jersey-mark small{font-size:8px;color:#c0d4ba;letter-spacing:2px}
+body .record-ranking .alumni-mark{width:52px;height:52px;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px}
+body .record-ranking .alumni-mark strong{font-size:24px}
+body .record-ranking .alumni-mark small{font-size:6px}
+body .record-ranking .leader-row{grid-template-columns:42px 56px minmax(0,1fr) auto}
+@media(max-width:760px){body .record-ranking .leader-row{grid-template-columns:34px 52px minmax(0,1fr) auto;gap:12px;padding:16px 12px}}
+body .game .res a.replay-link.alt{color:var(--muted);font-weight:500}
+/* Records: same slight tilt as the Players tab badges */
+body .record-ranking .jersey-mark{transform:rotate(-3deg)}
+/* Jersey night: rounded green tag with white jersey trim inside the edges */
+.theme-jersey{background:#0f6b3a;border-radius:4px;box-shadow:inset 0 0 0 2px #0f6b3a,inset 0 0 0 4px #fff;padding-left:12px!important;padding-right:12px!important}
+.feature .theme-jersey,.n-tags .theme-jersey{border-radius:999px}
+/* Box score: row stat boxes are tappable */
+body .box-player .stat-strip button.stat-cell{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+body .box-player .stat-strip button.stat-cell:hover{border-color:var(--green)}
+body .box-player .stat-strip button.stat-cell.is-selected{background:var(--ink);border-color:var(--ink)}
+body .box-player .stat-strip button.stat-cell.is-selected :is(strong,span){color:#fff}
+.box-explorer .stat-switch{scroll-margin-top:70px}
+/* Box score keeps its original light-green highlight for the chosen stat (player pages use black) */
+body .box-player .stat-strip button.stat-cell.is-selected{background:#dcebdc;border-color:#9bb18d}
+body .box-player .stat-strip button.stat-cell.is-selected strong{color:var(--ink)}
+body .box-player .stat-strip button.stat-cell.is-selected span{color:var(--green)}
+body .box-player .stat-strip button.stat-cell.is-selected{box-shadow:inset 0 -2px #477954;border-color:var(--line)}
+/* Next-game banner stripe lives in the rounded, clipped art layer so it follows the corners */
+.feature:after{display:none}
+.f-art:after{content:'';position:absolute;left:0;right:0;bottom:0;height:7px;background:repeating-linear-gradient(-45deg,var(--ink) 0 10px,transparent 10px 20px)}
+/* Team store link: last item on the desktop menu, inside More on phones */
+body nav#nav a.nav-ext{margin-left:auto;color:var(--green);font-weight:700}
+body nav#nav a.nav-ext:hover{color:var(--green-deep)}
+body nav#nav .nav-sheet a.sheet-store{color:var(--green);border-top:1px solid var(--line);border-radius:0 0 10px 10px;margin-top:4px}
+@media(max-width:760px){body nav#nav a.nav-ext{display:none}}
+/* Player honors (awards.json): compact list under the hero, plus star chips in the hero */
+.honor-chip i{font-style:normal;color:var(--mint);font-size:12px}
+.honor-chip b{font-size:16px}
+body .player-honors{padding:26px 0 0}
+body .player-honors h2{font:400 34px/1 var(--display);text-transform:uppercase;letter-spacing:.01em;margin:0 0 12px}
+.honor-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:0 18px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.honor-list li{display:flex;align-items:center;gap:12px;min-width:0;padding:10px 14px;border-top:1px solid var(--line);margin-top:-1px}
+.honor-list .h-year{flex:0 0 auto;width:46px;font:400 20px/1 var(--display);color:var(--green)}
+.honor-list .h-what{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.honor-list .h-what b{font:700 14px/1.25 var(--body);color:var(--ink)}
+.honor-list .h-what small{font:500 12px/1.3 var(--body);color:var(--muted)}
+.honor-list .h-src{flex:0 0 auto;font:600 12px var(--body);color:var(--green);text-decoration:none;white-space:nowrap}
+.honor-list .h-src:hover{text-decoration:underline}
+@media(max-width:760px){body .player-honors{padding-top:20px}body .player-honors h2{font-size:28px;margin-bottom:10px}.honor-list li{padding:9px 12px;gap:10px}.honor-list .h-year{width:40px;font-size:18px}}
+@media(max-width:700px){.honor-list .h-year.same{color:transparent}}
+@media(max-width:420px){.honor-list .h-src{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:var(--light);font-size:13px}.honor-list .h-src span{display:none}.honor-list li{padding:9px 10px 9px 12px}.honor-list .h-year{width:36px}}
