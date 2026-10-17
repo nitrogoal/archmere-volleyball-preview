@@ -890,6 +890,6 @@ async function playerTpl(d) {
       if (when) tpPrint(x, when, TP.cx + TP.w / 2, y - 12, 34, TP.green, {align: 'right'});
     }
   } else tpPrint(x, 'ARCHMERE VOLLEYBALL', TP.cx, 1150, tpSize(x, 'ARCHMERE VOLLEYBALL', TP.w, 80), TP.ink);
-  tpPrint(x, 'CLAYMONT, DELAWARE  ·  AUKSVB.COM', TP.cx, 1312, 17, TP.green, {font: 'Inter', weight: 800, spacing: 5, distress: false, alpha: .9});
+  tpPrint(x, 'CLAYMONT, DE  ·  AUKSVB.COM', TP.cx, 1306, 16, TP.green, {font: 'Inter', weight: 800, spacing: 3, distress: false, alpha: .9});
   return c;
 }
