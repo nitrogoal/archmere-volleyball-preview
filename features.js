@@ -123,7 +123,7 @@ function playerCollege(name) {
 // State-title banners hanging from a rafter (Awards page and home); animated by the Rafter banners block below
 function rafterBanners() {
   const art = (TEAM.stateTitles || []).filter(t => t.banner).sort((a, b) => a.year - b.year);
-  return art.length ? `<div class="rafters" role="list" aria-label="State championship banners">${art.map((t, k) => `<figure class="rafter-banner" role="listitem" style="--k:${k};--amp:${[1, -.8, 1.25][k % 3]};--dur:${[1.5, 1.9, 1.3][k % 3]}s"><img src="${esc(t.banner)}" alt="${esc(t.year)} DIAA girls volleyball state champions banner" width="600" height="835" decoding="async"></figure>`).join('')}</div>` : '';
+  return art.length ? `<div class="rafters" role="list" aria-label="State championship banners">${art.map((t, k) => `<figure class="rafter-banner" role="listitem" style="--k:${k};--amp:${[1, -.8, 1.25][k % 3]};--dur:${[1.5, 1.9, 1.3][k % 3]}s"><img src="${esc(t.banner)}" alt="${esc(t.year)} DIAA girls volleyball state champions banner" width="600" height="835" decoding="async" draggable="false"></figure>`).join('')}</div>` : '';
 }
 const homeBanners = () => { const r = rafterBanners(); return r ? `<section class="block home-banners"><div class="sec-head"><h2>State champions</h2><a href="#awards">Awards →</a></div>${r}</section>` : ''; };
 function stateTitles() {
@@ -517,6 +517,22 @@ function scheduleCalendar(list, isUp, off, today) {
   };
   const run = () => { if (!frame && !still.matches && live.size) { last = performance.now(); lastY = scrollY; frame = requestAnimationFrame(step); } };
   addEventListener('scroll', () => { check(); run(); }, {passive: true});
+  // Hands on: brushing the mouse (or a sliding finger) across a banner pushes it the way you move; a tap pokes it
+  // away from the finger. Listeners are passive, so scrolling is never blocked. Clockwise (+) swings the bottom left.
+  const banner = e => !still.matches && e.target.closest?.('.rafters.settled .rafter-banner img');
+  const lastX = new Map();
+  addEventListener('pointermove', e => {
+    const img = banner(e); if (!img) { lastX.delete(e.pointerId); return; }
+    const px = lastX.get(e.pointerId); lastX.set(e.pointerId, e.clientX); if (px == null || px === e.clientX) return;
+    const b = body(img); b.v += Math.max(-6, Math.min(6, (px - e.clientX) * .35)); run();
+  }, {passive: true});
+  addEventListener('pointerdown', e => {
+    const img = e.pointerType !== 'mouse' && banner(e); if (!img) return;
+    const r = img.getBoundingClientRect(), off = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+    const b = body(img); b.v += (off >= 0 ? 1 : -1) * (13 + Math.min(1, Math.abs(off)) * 9); run();
+  }, {passive: true});
+  addEventListener('pointerup', e => lastX.delete(e.pointerId), {passive: true});
+  addEventListener('pointercancel', e => lastX.delete(e.pointerId), {passive: true});
   // A light breeze: now and then one banner gets a small nudge (about 1°)
   setInterval(() => { if (still.matches || document.hidden) return; const list = imgs(); if (!list.length || Math.random() < .5) return; const b = body(list[Math.floor(Math.random() * list.length)]); b.v += (Math.random() < .5 ? -1 : 1) * (4 + Math.random() * 3); run(); }, 2800);
   const arm = () => document.querySelectorAll('.rafters:not(.armed)').forEach(r => {

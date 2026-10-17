@@ -732,3 +732,4 @@ html:has(.leader-modal[open]){overflow:hidden}
 @keyframes banner-drop{0%{opacity:0;transform:translateY(-44px) rotate(calc(-8deg * var(--amp,1)))}28%{opacity:1;transform:translateY(0) rotate(calc(6deg * var(--amp,1)))}46%{transform:rotate(calc(-3.5deg * var(--amp,1)))}64%{transform:rotate(calc(1.8deg * var(--amp,1)))}82%{transform:rotate(calc(-.7deg * var(--amp,1)))}100%{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.rafters .rafter-banner{animation:none!important;opacity:1!important;transform:none!important}.rafter-banner img{transform:none!important}}
 @media(max-width:600px){.rafters{padding-top:12px}.rafters:before{height:10px;top:5px}}
+.rafter-banner img{-webkit-user-drag:none;user-select:none;-webkit-tap-highlight-color:transparent}
