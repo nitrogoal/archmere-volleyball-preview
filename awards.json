@@ -1,5 +1,5 @@
 {
- "note": "Hand-curated with a source for every entry; the scheduled updater does not touch this file. players = honors earned at Archmere; college = where each player went on to play volleyball.",
+ "note": "Hand-curated with a source for every entry; the scheduled updater does not touch this file. players = honors earned at Archmere; team = DIAA state titles and state-final appearances; college = where each player went on to play volleyball.",
  "updated": "2026-10-17",
  "players": {
   "Abigail Garcia": [
@@ -544,5 +544,31 @@
    "year": 2014,
    "url": "https://www.archmereacademy.com/news-detail?pk=723120"
   }
+ },
+ "team": {
+  "stateTitles": [
+   {
+    "year": 2014,
+    "detail": "Def. Charter School of Wilmington 3–1",
+    "game": "142265",
+    "url": "https://www.archmereacademy.com/news-detail?pk=756290"
+   },
+   {
+    "year": 1987,
+    "detail": "DIAA state champion",
+    "url": "https://education.delaware.gov/diaa/wp-content/uploads/sites/2/2025/10/Fall-Champions-DIAA.pdf"
+   },
+   {
+    "year": 1986,
+    "detail": "DIAA state champion",
+    "url": "https://education.delaware.gov/diaa/wp-content/uploads/sites/2/2025/10/Fall-Champions-DIAA.pdf"
+   }
+  ],
+  "stateFinals": [
+   "232003",
+   "163787",
+   "81027",
+   "16051"
+  ]
  }
 }

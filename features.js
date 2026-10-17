@@ -89,9 +89,9 @@ function milestonesBlock() {
 const playerMilestones = name => milestones(name).map(m => `<span class="ms-chip"><b>${fmt(m.left)}</b> ${m.cat.toLowerCase()} from ${fmt(m.next)} career${m.rank <= 10 ? ` · ${ordinal(m.rank)} all-time` : ''}</span>`).join('');
 
 /* ---------- Honors & college (dist/awards.json, kept outside data.json so updater refreshes never drop it) ---------- */
-let AWARDS = {}, COLLEGE = {};
+let AWARDS = {}, COLLEGE = {}, TEAM = {};
 fetch('awards.json').then(r => r.ok ? r.json() : {}).then(a => {
-  AWARDS = a.players || {}; COLLEGE = a.college || {};
+  AWARDS = a.players || {}; COLLEGE = a.college || {}; TEAM = a.team || {};
   if (D) render(false);
 }).catch(() => {});
 // Newest season first; within a season, state honors before all-america, conference, then everything else
@@ -119,7 +119,14 @@ function playerCollege(name) {
   return `<a class="hero-college" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer"><span>College volleyball</span><b>${esc(c.school)}</b><small>${collegeVerb(c).split(' ')[0]}${c.year ? ' ' + esc(c.year) : ''} ↗</small></a>`;
 }
 
-/* ---------- Awards page: every honor by season, then college volleyball ---------- */
+/* ---------- Awards page: state titles, every honor by season, then college volleyball ---------- */
+function stateTitles() {
+  const titles = TEAM.stateTitles || []; if (!titles.length) return '';
+  const finals = (TEAM.stateFinals || []).map(id => D.games.find(g => g.id === id)).filter(Boolean);
+  const tile = t => { const g = t.game && D.games.find(x => x.id === t.game), href = g ? route('game', {id: g.id}) : t.url, ext = g ? '' : ' target="_blank" rel="noopener noreferrer"';
+    return `<a class="title-tile" href="${esc(href)}"${ext}><strong>${esc(t.year)}</strong><small>${esc(t.detail || 'DIAA state champion')}${g ? '' : ' ↗'}</small></a>`; };
+  return `<section class="state-titles" aria-label="State championships"><div class="st-head"><span>DIAA State Champions</span><b>${titles.length}×</b></div><div class="st-grid">${titles.map(tile).join('')}</div>${finals.length ? `<p class="st-finals"><span>State finalist</span>${finals.map(g => `<a href="${route('game', {id: g.id})}">${g.season}</a>`).join('')}</p>` : ''}</section>`;
+}
 const AWARD_TYPES = {'All-State': a => /all-state/i.test(a.award), 'All-Conference': a => /all-conference/i.test(a.award), 'Other honors': a => !/all-state|all-conference/i.test(a.award)};
 function awardsPage(q) {
   const type = AWARD_TYPES[q.get('type')] ? q.get('type') : '';
@@ -132,7 +139,7 @@ function awardsPage(q) {
     return `<section class="block"><div class="sec-head"><h2>${y || 'Year not listed'}</h2>${y && D.games.some(g => g.season === y) ? `<a href="${route('season', {year: y})}">Season →</a>` : ''}</div><div class="list">${names.map(n => `<a class="row award-row" href="${pLink(n)}"><span class="what"><b>${esc(n)}</b><small>${rows.filter(a => a.name === n).map(a => esc(a.award)).join(' · ')}</small></span>${classTag(n)}</a>`).join('')}</div></section>`;
   };
   const college = Object.entries(COLLEGE).sort((a, b) => (b[1].year || 0) - (a[1].year || 0) || a[0].localeCompare(b[0]));
-  return `<div class="awards-page"><div class="archive-poster"><div><div class="eyebrow">THE AUKS / HONOR ROLL</div><h1>Awards</h1><p>All-State, all-conference and more, earned in an Archmere uniform.<br>Tap a name for each honor and its source.</p></div><span class="archive-stamp"><small>HONORS</small><strong>${all.length}</strong></span></div><div class="tools">${select('Award type', 'type', Object.keys(AWARD_TYPES), type, 'All awards')}</div><p class="count">${all.length} ${all.length === 1 ? 'honor' : 'honors'} · ${players} ${players === 1 ? 'player' : 'players'}</p>${years.map(season).join('')}${!all.length ? '<p class="empty">No honors of this type on file yet.</p>' : ''}${!type && college.length ? `<section class="block"><div class="sec-head"><h2>College volleyball</h2><span class="quiet">${college.length} players</span></div><div class="list">${college.map(([name, c]) => `<a class="row award-row" href="${pLink(name)}"><span class="what"><b>${esc(name)}</b><small>${collegeVerb(c)} ${esc(c.school)}${c.year ? ' · ' + esc(c.year) : ''}</small></span>${classTag(name)}</a>`).join('')}</div></section>` : ''}<p class="record-context">Honors come from Archmere Athletics announcements and Delaware press. Seasons without a published list may be missing honors. <a href="#about">Sources &amp; coverage ↗</a></p></div>`;
+  return `<div class="awards-page"><div class="archive-poster"><div><div class="eyebrow">THE AUKS / HONOR ROLL</div><h1>Awards</h1><p>All-State, all-conference and more, earned in an Archmere uniform.<br>Tap a name for each honor and its source.</p></div><span class="archive-stamp"><small>HONORS</small><strong>${all.length}</strong></span></div>${type ? '' : stateTitles()}<div class="tools">${select('Award type', 'type', Object.keys(AWARD_TYPES), type, 'All awards')}</div><p class="count">${all.length} ${all.length === 1 ? 'honor' : 'honors'} · ${players} ${players === 1 ? 'player' : 'players'}</p>${years.map(season).join('')}${!all.length ? '<p class="empty">No honors of this type on file yet.</p>' : ''}${!type && college.length ? `<section class="block"><div class="sec-head"><h2>College volleyball</h2><span class="quiet">${college.length} players</span></div><div class="list">${college.map(([name, c]) => `<a class="row award-row" href="${pLink(name)}"><span class="what"><b>${esc(name)}</b><small>${collegeVerb(c)} ${esc(c.school)}${c.year ? ' · ' + esc(c.year) : ''}</small></span>${classTag(name)}</a>`).join('')}</div></section>` : ''}<p class="record-context">Honors come from Archmere Athletics announcements and Delaware press. Seasons without a published list may be missing honors. <a href="#about">Sources &amp; coverage ↗</a></p></div>`;
 }
 pages.awards = awardsPage;
 
