@@ -269,7 +269,7 @@ function lgStripe(ctx, y, h) {
 function lgRound(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 // d: {value, cat, catShort[], names[], first, last, tie, meta, season, result, score, opponent, away, date, stats|null, lead}
 async function leaderGraphic(d) {
-  const {c, x, W, M} = await lgFrame(d.tie ? 'TIED FOR THE LEAD' : 'MATCH LEADER', `${d.season} · GIRLS VARSITY`, d.last, 'win', `${d.names.join('&')}|${d.cat}|${d.date}`);
+  const {c, x, W, M} = await lgFrame(d.tie ? 'TIED FOR THE LEAD' : 'MATCH LEADER', `${d.season} · GIRLS VARSITY`, d.last, 'win', {seed: `${d.names.join('&')}|${d.cat}|${d.date}`, style: 'type', words: [d.cat, d.tie ? 'AUKS' : d.last]});
   // The number, with the stat word in script slashed across its lower right
   const base = 640, nw = lgBig(x, String(d.value), M, base, String(d.value).length > 2 ? 400 : 500);
   const sx = M + nw - 50; lgFit(x, d.cat, W - M - sx + 30, 170, s => `400 ${s}px Yellowtail`);
@@ -331,9 +331,7 @@ const fileSlug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replac
 
 /* ---------- Postgame graphic (schedule result cards) ---------- */
 // Shared canvas frame: green field + dots, ink header with the lockup, stripes, ink footer
-/* ---------- Poster wall backdrop for share graphics (original; inspired by the team's wheatpaste game-day wall) ----------
-   Everything is drawn from vectors + Anton/Inter + our own A logo, laid out from a per-card seed so a card always
-   renders the same wall. No third-party marks. */
+/* ---------- Drawing helpers for share-graphic backdrops (seeded random, Delaware outline, star, volleyball, auk) ---------- */
 const lgRand = seed => { let h = 1779033703 ^ String(seed).length; for (const ch of String(seed)) { h = Math.imul(h ^ ch.charCodeAt(0), 3432918353); h = h << 13 | h >>> 19; }
   return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }; };
 // Stylised Delaware outline (unit box, y down): twelve-mile arc at the top, straight western line, bay coast to the east
@@ -366,71 +364,69 @@ function lgAuk(x, cx, cy, h, dark, light) {
   x.fillRect(26, -38, 2.5, 8); x.fillRect(31, -37, 2.5, 7);
   x.restore();
 }
-const LG_SCHEMES = [['#0f6b3a', '#fff'], ['#0d1210', '#2fa05f'], ['#f4f5f1', '#0f6b3a'], ['#f4f5f1', '#0d1210'], ['#0a4a28', '#d6efdc'], ['#0d1210', '#fff']];
-// Each tile kind draws into a w×h box at the origin, with bg already filled
-const LG_TILES = {
-  stack(x, w, h, ink, r) {
-    const word = r() < .5 ? 'AUKS' : 'CLAYMONT';
-    const size = word.length > 5 ? h / 7 : h / 5.2; x.font = `400 ${size}px Anton`;
-    for (let i = 0, y = size * .95; y < h + size; i++, y += size * .98) {
-      if (i % 2) { x.strokeStyle = ink; x.lineWidth = 2; x.strokeText(word, 10, y); } else { x.fillStyle = ink; x.fillText(word, 10, y); }
+/* ---------- Share-graphic backdrops: original, code-drawn, tone-on-tone; seeded per card so a card always looks the same ----------
+   type  : the card's own words as a tilted typographic wallpaper (match leader, player card)
+   river : flowing contour lines of the river, a cropped Delaware outline, a star at Claymont (game day, losses)
+   seams : sweeping volleyball panel bands, a dot fade and a big faint auk (postgame wins) */
+function lgBackdrop(x, W, H, o) {
+  const r = lgRand(o.seed), loss = o.mode === 'loss', L = loss ? '47,160,95' : '255,255,255';
+  // Base field with soft light from the upper left
+  const base = x.createRadialGradient(W * .2, 260, 60, W * .3, 520, 1100);
+  if (loss) { base.addColorStop(0, '#18241f'); base.addColorStop(1, '#0b0f0d'); } else { base.addColorStop(0, '#16864c'); base.addColorStop(.55, '#0f6b3a'); base.addColorStop(1, '#0a4a28'); }
+  x.fillStyle = base; x.fillRect(0, 0, W, H);
+  x.save(); x.beginPath(); x.rect(0, 150, W, H - 150); x.clip();
+  if (o.style === 'type') {
+    const words = (o.words || ['AUKS']).filter(Boolean).map(w => String(w).toUpperCase()), size = 168, hot = 2 + Math.floor(r() * 5);
+    x.translate(W / 2, 760); x.rotate(-.2 + (r() - .5) * .08); x.font = `400 ${size}px Anton`;
+    for (let i = -7, row = 0; i <= 7; i++, row++) {
+      const unit = words[row % words.length] + '  ·  ', uw = x.measureText(unit).width, y = i * size * .98;
+      for (let sx = -1200 - r() * uw; sx < 1200; sx += uw) {
+        if (row === hot) { x.fillStyle = 'rgba(214,239,220,.15)'; x.fillText(unit, sx, y); }
+        else if (row % 2) { x.strokeStyle = `rgba(${L},.15)`; x.lineWidth = 2; x.strokeText(unit, sx, y); }
+        else { x.fillStyle = `rgba(${L},.06)`; x.fillText(unit, sx, y); }
+      }
     }
-  },
-  vball(x, w, h, ink) { const s = h / 11; for (let i = 0, y = s; y < h + s; i++, y += s * 1.05) { x.font = `${i % 3 === 0 ? 800 : 700} ${s * .8}px Inter`; x.fillStyle = ink; x.fillText(i % 3 === 0 ? 'ARCHMERE ACADEMY' : 'VBALL VBALL VBALL', 8, y); } },
-  logo(x, w, h, ink, r, img) { if (img) { const s = Math.min(w, h) * .78, ih = s * img.height / img.width; x.drawImage(img, (w - s) / 2, (h - ih) / 2, s, ih); } },
-  delaware(x, w, h, ink, r) { const cw = w / 2, ch = h / 2; for (let i = 0; i < 4; i++) { const cx = (i % 2) * cw, cy = (i >> 1) * ch, dark = (i % 2) ^ (i >> 1); x.fillStyle = dark ? '#0d1210' : '#0f6b3a'; x.fillRect(cx, cy, cw, ch); lgDelaware(x, cx + cw / 2, cy + ch / 2, ch * .78, dark ? '#0f6b3a' : '#0d1210', '#fff'); } },
-  map(x, w, h, ink, r, img) {
-    x.strokeStyle = 'rgba(13,18,16,.55)'; x.lineWidth = 1.5;
-    for (let i = 0; i < 14; i++) { x.beginPath(); const y0 = r() * h, a = (r() - .5) * .6; x.moveTo(-10, y0); x.lineTo(w + 10, y0 + a * w); x.stroke(); }
-    for (let i = 0; i < 10; i++) { x.beginPath(); const x0 = r() * w; x.moveTo(x0, -10); x.quadraticCurveTo(x0 + (r() - .5) * 60, h / 2, x0 + (r() - .5) * 40, h + 10); x.stroke(); }
-    x.lineWidth = 4; x.strokeStyle = 'rgba(15,107,58,.6)'; x.beginPath(); x.moveTo(w * .7, -10); x.bezierCurveTo(w * .9, h * .3, w * .6, h * .6, w + 10, h); x.stroke();
-    LG_TILES.logo(x, w, h, ink, r, img);
-  },
-  grade(x, w, h, ink) { const rr = Math.min(w, h) * .36; x.strokeStyle = ink; x.lineWidth = 9; x.beginPath(); x.arc(w / 2, h / 2, rr, 0, 7); x.stroke(); x.fillStyle = ink; x.textAlign = 'center'; x.font = `400 ${rr * 1.15}px Anton`; x.fillText('B+', w / 2, h / 2 + rr * .4); x.textAlign = 'left'; },
-  balls(x, w, h, ink) { for (let i = 0; i < 6; i++) lgBall(x, w * (i % 2 ? .7 : .3), h * (.18 + Math.floor(i / 2) * .32), Math.min(w, h) * .17, ink, 4); },
-  auks(x, w, h, ink, r, img, bg) { for (let i = 0; i < 4; i++) lgAuk(x, w * (i % 2 ? .7 : .28), h * (i < 2 ? .28 : .74), h * .4, ink, bg); },
-  slogan(x, w, h, ink, r) {
-    const lines = r() < .5 ? ["IT'S A", 'GREAT', 'DAY', 'TO BE', 'AN AUK'] : ['MAKE IT', 'A GREAT', 'DAY', 'ARCHMERE'];
-    const size = h / (lines.length + .6); lines.forEach((l, i) => { x.font = `400 ${size}px Anton`; const tw = x.measureText(l).width, sc = Math.min(1, (w - 20) / tw);
-      x.save(); x.translate(10, size * (i + 1)); x.scale(sc, 1); if (i % 2) { x.strokeStyle = ink; x.lineWidth = 2; x.strokeText(l, 0, 0); } else { x.fillStyle = ink; x.fillText(l, 0, 0); } x.restore(); });
-  },
-  lockup(x, w, h, ink, r, img) { const rows = 4, rh = h / rows; for (let i = 0; i < rows; i++) { const y = i * rh + rh / 2; if (img) x.drawImage(img, 10, y - rh * .28, rh * .78, rh * .56); x.fillStyle = ink; x.font = `400 ${rh * .26}px Anton`; x.fillText('ARCHMERE', 14 + rh * .8, y - 2); x.fillText('VOLLEYBALL', 14 + rh * .8, y + rh * .26); } },
-  vertical(x, w, h, ink, r) { x.save(); x.translate(w * .2, h - 10); x.rotate(-Math.PI / 2); x.fillStyle = ink; for (let i = 0; i < 3; i++) { x.font = `400 ${w * .26}px Anton`; const t = i === 1 ? 'ARCHMERE' : 'AUKS'; if (i === 1) { x.strokeStyle = ink; x.lineWidth = 2; x.strokeText(t, 0, i * w * .3); } else x.fillText(t, 0, i * w * .3); } x.restore(); }
-};
-const LG_KINDS = ['stack', 'vball', 'logo', 'delaware', 'map', 'grade', 'balls', 'auks', 'slogan', 'lockup', 'vertical', 'stack', 'logo', 'slogan'];
-function lgWall(x, W, H, seed, logo) {
-  const r = lgRand(seed), cols = 4, rows = 5, tw = W / cols, th = (H - 150) / rows;
-  x.fillStyle = '#e9ebe6'; x.fillRect(0, 0, W, H);
-  for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
-    const kind = LG_KINDS[Math.floor(r() * LG_KINDS.length)];
-    let [bg, ink] = LG_SCHEMES[Math.floor(r() * LG_SCHEMES.length)];
-    if (kind === 'delaware') bg = '#0d1210';
-    if ((kind === 'logo' || kind === 'map') && bg !== '#f4f5f1' && r() < .5) { bg = '#f4f5f1'; ink = '#0f6b3a'; }
-    if (kind === 'map') { bg = '#f4f5f1'; ink = '#0d1210'; }
-    const w = tw + 14, h = th + 14, cx = col * tw + tw / 2 + (r() - .5) * 10, cy = 150 + row * th + th / 2 + (r() - .5) * 10;
-    x.save(); x.translate(cx, cy); x.rotate((r() - .5) * .045); x.translate(-w / 2, -h / 2);
-    x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 8; x.shadowOffsetY = 2; x.fillStyle = bg; x.fillRect(0, 0, w, h); x.shadowColor = 'transparent';
-    x.beginPath(); x.rect(0, 0, w, h); x.clip();
-    LG_TILES[kind](x, w, h, ink, r, logo, bg);
-    // Paper: fine grain plus a crease or two
-    for (let i = 0; i < 220; i++) { x.fillStyle = r() < .5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)'; x.fillRect(r() * w, r() * h, 2, 2); }
-    for (let i = 0, n = 1 + Math.floor(r() * 2); i < n; i++) { const vert = r() < .5, p = (.25 + r() * .5) * (vert ? w : h); x.fillStyle = 'rgba(255,255,255,.10)'; vert ? x.fillRect(p, 0, 1.5, h) : x.fillRect(0, p, w, 1.5); x.fillStyle = 'rgba(0,0,0,.10)'; vert ? x.fillRect(p + 1.5, 0, 1.5, h) : x.fillRect(0, p + 1.5, w, 1.5); }
-    x.restore();
+  } else if (o.style === 'river') {
+    // Contour-like flow lines, every fifth one a little stronger
+    x.lineWidth = 2; const n = 36;
+    for (let i = 0; i < n; i++) {
+      const y0 = 160 + i * (1060 / n), a = 16 + r() * 16, f = .0035 + r() * .003, p = r() * 6.3;
+      x.strokeStyle = `rgba(${L},${i % 5 ? .1 : .22})`; x.beginPath();
+      for (let px = -20; px <= W + 20; px += 10) { const y = y0 + Math.sin(px * f + p) * a + Math.sin(px * .012 + i * .7) * 7; px === -20 ? x.moveTo(px, y) : x.lineTo(px, y); }
+      x.stroke();
+    }
+    // Delaware, cropped off the right edge, with Claymont marked
+    const h = 1150, cx = W * .86, cy = 790, w = h * .45, sx = cx - w / 2 + .52 * w, sy = cy - h / 2 + .09 * h;
+    lgDelaware(x, cx, cy, h, `rgba(${L},.1)`, null);
+    x.strokeStyle = 'rgba(214,239,220,.35)'; x.lineWidth = 2; x.beginPath(); x.arc(sx, sy, 34, 0, 7); x.stroke();
+    lgStar(x, sx, sy, 18, 'rgba(214,239,220,.6)');
+    x.font = '700 19px Inter'; x.fillStyle = 'rgba(214,239,220,.5)'; lgTracked(x, 'CLAYMONT, DE', sx - 48, sy - 4, 4, 'right'); lgTracked(x, '39.80°N  75.46°W', sx - 48, sy + 22, 3, 'right');
+  } else {
+    // Volleyball panels: broad curved bands sweeping across, each edged with a fine highlight
+    for (let i = 0; i < 6; i++) {
+      const y1 = 120 + i * 230 + r() * 60, y2 = 520 + i * 210 + r() * 80, mid = 40 + i * 250 + r() * 60;
+      x.beginPath(); x.moveTo(-120, y1); x.quadraticCurveTo(W * .5, mid, W + 120, y2);
+      x.lineWidth = 92; x.strokeStyle = i % 2 ? 'rgba(0,0,0,.14)' : `rgba(${L},.08)`; x.stroke();
+      x.lineWidth = 3; x.strokeStyle = `rgba(${L},.2)`; x.stroke();
+    }
+    // Dot fade toward the lower right
+    for (let py = 170; py < H; py += 22) for (let px = 0; px < W; px += 22) {
+      const t = (.9 * px / W + .45 * py / H) / 1.35, al = Math.max(0, Math.min(1, (t - .45) / .45)) * .2;
+      if (al > 0) { x.fillStyle = `rgba(0,0,0,${al.toFixed(3)})`; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill(); }
+    }
+    lgAuk(x, W * .8, 820, 760, `rgba(${L},.1)`, 'rgba(0,0,0,.08)');
   }
+  x.restore();
 }
-async function lgFrame(kicker, sub, watermark, mode = 'win', seed = kicker + sub) {
+async function lgFrame(kicker, sub, watermark, mode = 'win', bg = {}) {
   const T = LG_THEMES[mode];
   await Promise.all([lgFonts(), lgLoadLogo()]);
   const c = document.createElement('canvas'); c.width = LG.w; c.height = LG.h;
   const x = c.getContext('2d'), W = LG.w, M = 64;
-  // Poster wall, then dim it (green for wins and cards, ink for losses) and soften the text zone
-  const logoImg = await lgLogo;
-  lgWall(x, W, LG.h, seed, logoImg);
-  const tint = mode === 'loss' ? '8,12,10' : '7,52,29';
-  x.fillStyle = `rgba(${tint},${mode === 'loss' ? .5 : .3})`; x.fillRect(0, 150, W, LG.h - 150);
-  x.save(); x.filter = 'blur(3px)'; x.drawImage(c, 0, 360, W, 830, 0, 360, W, 830); x.restore();
-  const g = x.createLinearGradient(0, 170, 0, 1186);
-  g.addColorStop(0, `rgba(${tint},.12)`); g.addColorStop(.3, `rgba(${tint},.45)`); g.addColorStop(.55, `rgba(${tint},.72)`); g.addColorStop(1, `rgba(${tint},.86)`);
+  // Backdrop, then a light scrim that deepens toward the stats
+  lgBackdrop(x, W, LG.h, {seed: kicker + sub, style: 'type', ...bg, mode});
+  const tint = mode === 'loss' ? '8,12,10' : '7,52,29', g = x.createLinearGradient(0, 170, 0, 1186);
+  g.addColorStop(0, `rgba(${tint},0)`); g.addColorStop(.45, `rgba(${tint},.22)`); g.addColorStop(1, `rgba(${tint},.5)`);
   x.fillStyle = g; x.fillRect(0, 150, W, 1036);
   x.fillStyle = T.bar; x.fillRect(0, 0, W, 150);
   const logo = await lgLogo; if (logo) x.drawImage(logo, M - 6, 25, 140, 100);
@@ -451,7 +447,7 @@ function lgBig(x, text, px, base, size, T = LG_THEMES.win) {
 }
 // d: {win, loss, score, opponent, away, sets[[a,b]], record, date, place, season, phase, leaders[{cat, name, value}]}
 async function postgameGraphic(d) {
-  const mode = d.loss ? 'loss' : 'win', {c, x, W, M, T} = await lgFrame('FINAL', `${d.season} · GIRLS VARSITY`, d.win ? 'WIN' : 'FINAL', mode, `${d.opponent}|${d.date}`);
+  const mode = d.loss ? 'loss' : 'win', {c, x, W, M, T} = await lgFrame('FINAL', `${d.season} · GIRLS VARSITY`, d.win ? 'WIN' : 'FINAL', mode, {seed: `${d.opponent}|${d.date}`, style: d.loss ? 'river' : 'seams'});
   // Center the content block between the stripes when there are no sets/performers to fill it
   const nL = Math.min(3, d.leaders.length), need = 470 + (d.sets.length ? 180 : 30) + (nL ? 18 + nL * 84 : 0), off = Math.max(0, (1000 - need) / 2 - 10);
   x.save(); x.translate(0, off);
@@ -632,7 +628,7 @@ function lgTile(x, img, cx, cy, size) {
 }
 // d: {days, opponent, oppLogo, away, neutral, date (long), time, place, theme, record, season}
 async function gamedayGraphic(d) {
-  const today = d.days === 0, {c, x, W, M, T} = await lgFrame(today ? 'GAME DAY' : 'NEXT UP', `${d.season} · GIRLS VARSITY`, today ? 'GAMEDAY' : 'AUKS', 'win', `${d.opponent}|${d.date}`);
+  const today = d.days === 0, {c, x, W, M, T} = await lgFrame(today ? 'GAME DAY' : 'NEXT UP', `${d.season} · GIRLS VARSITY`, today ? 'GAMEDAY' : 'AUKS', 'win', {seed: `${d.opponent}|${d.date}`, style: 'river'});
   const [ours, theirs] = await Promise.all([lgLoadLogo(), d.oppLogo ? lgLoadImg(d.oppLogo) : null]);
   // The count: GAME DAY today, otherwise days to go, with the script word slashed across
   if (today) {
@@ -694,7 +690,7 @@ document.addEventListener('keydown', e => {
 /* ---------- Player share card (button in the player hero) ---------- */
 // d: {first, last, mark (jersey or initials), jersey, cls, seasons, totals[5], honors[], college}
 async function playerCardGraphic(d) {
-  const {c, x, W, M, T} = await lgFrame('PLAYER CARD', d.cls ? `CLASS OF ${d.cls}` : 'ARCHMERE VOLLEYBALL', d.last, 'win', `${d.first} ${d.last}`);
+  const {c, x, W, M, T} = await lgFrame('PLAYER CARD', d.cls ? `CLASS OF ${d.cls}` : 'ARCHMERE VOLLEYBALL', d.last, 'win', {seed: `${d.first} ${d.last}`, style: 'type', words: [d.last, d.jersey ? '#' + d.jersey : d.mark]});
   // Jersey number (or initials) huge, with the name beside it
   const mw = lgBig(x, d.mark, M, 560, d.mark.length > 2 ? 300 : 380, T);
   const nx = M + mw + 50, room = W - M - nx;
