@@ -90,7 +90,7 @@ const playerMilestones = name => milestones(name).map(m => `<span class="ms-chip
 
 /* ---------- Honors & college (dist/awards.json, kept outside data.json so updater refreshes never drop it) ---------- */
 let AWARDS = {}, COLLEGE = {}, TEAM = {};
-fetch('awards.json').then(r => r.ok ? r.json() : {}).then(a => {
+fetch('awards.json', {cache: 'no-cache'}).then(r => r.ok ? r.json() : {}).then(a => {
   AWARDS = a.players || {}; COLLEGE = a.college || {}; TEAM = a.team || {};
   if (D) render(false);
 }).catch(() => {});
