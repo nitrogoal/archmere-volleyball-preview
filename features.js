@@ -123,9 +123,9 @@ function playerCollege(name) {
 function stateTitles() {
   const titles = TEAM.stateTitles || []; if (!titles.length) return '';
   const finals = (TEAM.stateFinals || []).map(id => D.games.find(g => g.id === id)).filter(Boolean);
-  const tile = t => { const g = t.game && D.games.find(x => x.id === t.game), href = g ? route('game', {id: g.id}) : t.url, ext = g ? '' : ' target="_blank" rel="noopener noreferrer"';
-    return `<a class="title-tile" href="${esc(href)}"${ext}><strong>${esc(t.year)}</strong><small>${esc(t.detail || 'DIAA state champion')}${g ? '' : ' ↗'}</small></a>`; };
-  return `<section class="state-titles" aria-label="State championships"><div class="st-head"><span>DIAA State Champions</span><b>${titles.length}×</b></div><div class="st-grid">${titles.map(tile).join('')}</div>${finals.length ? `<p class="st-finals"><span>State finalist</span>${finals.map(g => `<a href="${route('game', {id: g.id})}">${g.season}</a>`).join('')}</p>` : ''}</section>`;
+  const year = t => { const g = t.game && D.games.find(x => x.id === t.game), href = g ? route('game', {id: g.id}) : t.url, ext = g ? '' : ' target="_blank" rel="noopener noreferrer"';
+    return `<a class="st-year" href="${esc(href)}"${ext}><strong>${esc(t.year)}</strong><small>${esc(t.detail || 'DIAA champion')}${g ? '' : ' ↗'}</small></a>`; };
+  return `<section class="state-titles bleed" aria-label="State championships"><div class="wrap"><div class="st-label"><i>State champions</i><span>DIAA · ${titles.length} titles</span></div><div class="st-years">${titles.map(year).join('')}</div>${finals.length ? `<p class="st-finals"><span>State finals</span>${finals.map(g => `<a href="${route('game', {id: g.id})}">${g.season}</a>`).join('')}</p>` : ''}</div></section><div class="stripe bleed"></div>`;
 }
 const AWARD_TYPES = {'All-State': a => /all-state/i.test(a.award), 'All-Conference': a => /all-conference/i.test(a.award), 'Other honors': a => !/all-state|all-conference/i.test(a.award)};
 function awardsPage(q) {
